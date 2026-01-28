@@ -1,13 +1,15 @@
 """
-CONALTURA - Dashboard Ejecutivo 2025
-Gran Convención de Ventas
+══════════════════════════════════════════════════════════════════════════════════
+    CONALTURA - DASHBOARD EJECUTIVO 2025
+    Gran Convención de Ventas
+    VERSIÓN PRODUCCIÓN FINAL
+══════════════════════════════════════════════════════════════════════════════════
 """
 
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
-import base64
+from plotly.subplots import make_subplots
 from pathlib import Path
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -15,50 +17,46 @@ from pathlib import Path
 # ══════════════════════════════════════════════════════════════════════════════
 
 st.set_page_config(
-    page_title="Conaltura | Dashboard Ejecutivo",
+    page_title="Conaltura | Dashboard Ejecutivo 2025",
     page_icon="🏢",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ══════════════════════════════════════════════════════════════════════════════
-# COLORES
+# PALETA DE COLORES
 # ══════════════════════════════════════════════════════════════════════════════
 
-COLORS = {
-    'teal': '#125160',
-    'lime': '#DBFF69',
-    'coral': '#FF795A',
-    'lilac': '#B382FF',
-    'bg': '#F8FAFC',
-    'card': '#FFFFFF',
-    'text': '#1E293B',
-    'muted': '#64748B',
-    'border': '#E2E8F0',
+TEAL = '#125160'
+LIME = '#DBFF69'
+CORAL = '#FF795A'
+LILAC = '#B382FF'
+CYAN = '#00D4AA'
+GOLD = '#FFB800'
+PINK = '#FF6B9D'
+BLUE = '#4A90D9'
+
+# Colores por Agrupación (canal)
+AGRUPACION_COLORS = {
+    'Ventas Digitales': '#00D4AA',
+    'Ventas Tradicionales': '#125160',
+    'Ventas Referidos': '#B382FF',
+    'Ventas Ferias': '#FF795A',
+    'Ventas Recompra': '#FFB800',
+    'Ventas Colaboradores': '#4A90D9',
+    'Ventas Aliados': '#FF6B9D',
+    'Ventas Canjes': '#DBFF69',
+    'Ventas Empresas': '#8B5CF6',
+    'Eventos Internacionales': '#EC4899',
 }
 
-CANAL_COLORS = {
-    'DIGITAL': '#DBFF69',
-    'RELACIONAMIENTO': '#125160',
-    'EXPERIENCIA': '#B382FF',
-    'EVENTOS': '#FF795A',
-    'TRADICIONAL': '#A8D861',
-    'OTROS': '#94A3B8',
-}
-
-GAMA_COLORS = {
-    'VIS/Acceso': '#E8FFB0',
-    'Media': '#DBFF69',
-    'Alta': '#B382FF',
-    'Premium': '#FF795A',
-}
-
+# Colores por Ciudad
 CIUDAD_COLORS = {
     'Medellín': '#125160',
     'Barranquilla': '#FF795A',
     'Bogotá': '#B382FF',
-    'Cali': '#DBFF69',
-    'Cartagena': '#E8FFB0',
+    'Cali': '#00D4AA',
+    'Cartagena': '#FFB800',
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -67,40 +65,50 @@ CIUDAD_COLORS = {
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     
-    * { font-family: 'Poppins', sans-serif !important; }
+    * { font-family: 'Inter', sans-serif !important; }
     
-    .stApp { background-color: #F8FAFC !important; }
+    .stApp { background: linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%) !important; }
     
     .main .block-container {
-        padding: 1.5rem 2rem !important;
-        max-width: 1500px;
+        padding: 1rem 2rem !important;
+        max-width: 1600px;
     }
     
-    /* Ocultar elementos Streamlit */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stDeployButton {display: none;}
+    #MainMenu, footer, header, .stDeployButton { display: none !important; }
     
-    /* Cards */
     div[data-testid="stMetric"] {
-        background: white;
-        padding: 1rem;
-        border-radius: 12px;
-        border: 1px solid #E2E8F0;
+        background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+        padding: 1.2rem;
+        border-radius: 16px;
+        border: 1px solid rgba(18, 81, 96, 0.1);
+        box-shadow: 0 4px 20px rgba(18, 81, 96, 0.08);
     }
     
     div[data-testid="stMetric"] label {
         color: #64748B !important;
-        font-size: 0.8rem !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
     }
     
     div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: #1E293B !important;
-        font-size: 1.8rem !important;
-        font-weight: 700 !important;
+        color: #125160 !important;
+        font-size: 1.7rem !important;
+        font-weight: 800 !important;
+    }
+    
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background: white;
+        padding: 8px;
+        border-radius: 12px;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #125160 0%, #0a3540 100%) !important;
+        color: #DBFF69 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -110,194 +118,194 @@ st.markdown("""
 # ══════════════════════════════════════════════════════════════════════════════
 
 def format_cop(value):
-    """Formato completo COP"""
+    """Formato completo COP con separador de miles"""
     if pd.isna(value) or value == 0:
         return "$0"
     return f"${value:,.0f}".replace(",", ".")
 
 def format_short(value):
-    """Formato corto"""
+    """Formato corto para valores grandes - CORREGIDO para Colombia"""
     if pd.isna(value) or value == 0:
         return "$0"
-    if value >= 1e12:
-        return f"${value/1e12:.2f}T"
-    if value >= 1e9:
-        return f"${value/1e9:.1f}B"
-    if value >= 1e6:
-        return f"${value/1e6:.0f}M"
-    return f"${value/1e3:.0f}K"
+    
+    abs_val = abs(value)
+    
+    # En Colombia: 1 billón = 1,000,000,000,000 (un millón de millones)
+    if abs_val >= 1_000_000_000_000:  # Billones
+        return f"${value/1_000_000_000_000:.2f}B"
+    elif abs_val >= 1_000_000_000:  # Miles de millones (MM)
+        return f"${value/1_000_000_000:.1f}MM"
+    elif abs_val >= 1_000_000:  # Millones
+        return f"${value/1_000_000:.0f}M"
+    elif abs_val >= 1_000:  # Miles
+        return f"${value/1_000:.0f}K"
+    else:
+        return f"${value:.0f}"
 
-def load_logo():
-    """Cargar logo"""
-    for path in ['logo.png', './logo.png']:
-        if Path(path).exists():
-            return path
-    return None
+def format_num(value):
+    """Formato número con separador de miles"""
+    if pd.isna(value) or value == 0:
+        return "0"
+    return f"{int(value):,}".replace(",", ".")
 
-def clean_df(df):
-    """Limpiar y normalizar DataFrame"""
-    # Normalizar nombres de columnas
-    col_map = {}
-    for col in df.columns:
-        col_lower = col.lower().strip().replace(' ', '_')
-        if 'proyecto' in col_lower:
-            col_map[col] = 'MacroProyecto'
-        elif 'medio' in col_lower and 'publicitario' in col_lower:
-            col_map[col] = 'MedioPublicitario'
-        elif 'macro' in col_lower and 'canal' in col_lower:
-            col_map[col] = 'MacroCanal'
-        elif 'canal' in col_lower or 'agrupacion' in col_lower or 'agrupación' in col_lower:
-            col_map[col] = 'MacroCanal'
-        elif 'valor' in col_lower or 'neto' in col_lower or 'venta' in col_lower:
-            col_map[col] = 'ValorNeto'
-        elif 'ciudad' in col_lower:
-            col_map[col] = 'Ciudad'
-        elif 'gama' in col_lower or 'segmento' in col_lower:
-            col_map[col] = 'Gama'
-        elif 'fecha' in col_lower:
-            col_map[col] = 'Fecha'
+def get_color(name, color_dict, default='#64748B'):
+    """Obtiene color del diccionario o devuelve default"""
+    return color_dict.get(name, default)
+
+def load_data(uploaded_file):
+    """Carga y procesa el archivo - SIN modificar nombres de columnas"""
+    try:
+        if uploaded_file.name.endswith('.csv'):
+            content = uploaded_file.read().decode('utf-8')
+            uploaded_file.seek(0)
+            sep = ';' if ';' in content[:1000] else ','
+            df = pd.read_csv(uploaded_file, sep=sep)
+        else:
+            df = pd.read_excel(uploaded_file)
+        
+        # Limpiar espacios en nombres de columnas
+        df.columns = df.columns.str.strip()
+        
+        # Procesar fecha si existe
+        if 'Fecha' in df.columns:
+            df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+            df['Mes'] = df['Fecha'].dt.month
+            df['MesNombre'] = df['Fecha'].dt.strftime('%b')
+        
+        # Asegurar que Valor Neto sea numérico
+        if 'Valor Neto' in df.columns:
+            df['Valor Neto'] = pd.to_numeric(df['Valor Neto'], errors='coerce').fillna(0)
+        
+        # Limpiar strings
+        for col in ['MacroProyecto', 'Medio Publicitario', 'Ciudad', 'Agrupación']:
+            if col in df.columns:
+                df[col] = df[col].fillna('Sin Definir').astype(str).str.strip()
+        
+        return df
     
-    df = df.rename(columns=col_map)
-    
-    # Procesar columnas
-    if 'ValorNeto' in df.columns:
-        df['ValorNeto'] = pd.to_numeric(df['ValorNeto'], errors='coerce').fillna(0)
-    
-    if 'Fecha' in df.columns:
-        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
-        df['Mes'] = df['Fecha'].dt.month
-    
-    # Limpiar strings
-    for col in ['MacroProyecto', 'MedioPublicitario', 'Ciudad', 'MacroCanal', 'Gama']:
-        if col in df.columns:
-            df[col] = df[col].fillna('Sin Definir').astype(str).str.strip()
-    
-    return df
+    except Exception as e:
+        st.error(f"❌ Error al cargar: {str(e)}")
+        return None
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 
 with st.sidebar:
-    st.markdown("### 📊 Panel de Control")
-    st.markdown("---")
+    st.markdown(f"""
+    <div style="text-align:center; padding:1rem 0 1.5rem 0; border-bottom:2px solid rgba(219,255,105,0.3); margin-bottom:1.5rem;">
+        <div style="font-size:1.4rem; font-weight:800; color:{TEAL};">
+            con<span style="background:{TEAL}; color:{LIME}; padding:2px 6px; border-radius:4px;">altura</span>
+        </div>
+        <div style="font-size:0.7rem; color:#64748B; margin-top:4px;">Dashboard Ejecutivo 2025</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     uploaded_file = st.file_uploader(
-        "📁 Cargar archivo de datos",
+        "📁 CARGAR DATOS",
         type=['csv', 'xlsx', 'xls'],
-        help="Sube tu archivo CSV o Excel"
+        help="Archivo CSV o Excel con la sabana de datos"
     )
     
-    # Variables para filtros
     filter_ciudad = 'Todas'
-    filter_canal = 'Todos'
-    filter_gama = 'Todas'
+    filter_agrupacion = 'Todas'
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HEADER
 # ══════════════════════════════════════════════════════════════════════════════
 
-col_logo, col_title = st.columns([1, 4])
+col1, col2 = st.columns([3, 1])
 
-with col_logo:
-    logo_path = load_logo()
-    if logo_path:
-        st.image(logo_path, width=120)
-
-with col_title:
+with col1:
     st.markdown(f"""
-    <h1 style="margin:0; color:{COLORS['text']}; font-size:1.8rem;">
-        con<span style="background:{COLORS['teal']}; color:{COLORS['lime']}; padding:0 4px; border-radius:4px;">altura</span>
-    </h1>
-    <p style="margin:0; color:{COLORS['muted']}; font-size:0.9rem;">
-        Gran Convención de Ventas 2025 • Dashboard Ejecutivo
+    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:0.5rem;">
+        <h1 style="margin:0; font-size:2rem; font-weight:800; color:{TEAL};">
+            Dashboard Ejecutivo
+        </h1>
+        <span style="background:linear-gradient(135deg, {CORAL} 0%, #e5684a 100%); color:white; padding:6px 14px; border-radius:20px; font-size:0.75rem; font-weight:700;">
+            🎯 Gran Convención 2025
+        </span>
+    </div>
+    <p style="margin:0; color:#64748B; font-size:0.9rem;">
+        Análisis integral de ventas por agrupación, ciudad y proyecto
     </p>
     """, unsafe_allow_html=True)
 
-st.markdown("---")
+with col2:
+    logo_path = Path('logo.png')
+    if logo_path.exists():
+        st.image(str(logo_path), width=140)
+
+st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SIN DATOS - PANTALLA DE BIENVENIDA
+# SIN DATOS
 # ══════════════════════════════════════════════════════════════════════════════
 
 if uploaded_file is None:
-    st.markdown("""
-    <div style="text-align:center; padding:3rem; background:white; border-radius:16px; border:1px solid #E2E8F0; max-width:500px; margin:2rem auto;">
-        <div style="font-size:3rem; margin-bottom:1rem;">📊</div>
-        <h2 style="color:#1E293B; margin-bottom:0.5rem;">Dashboard Ejecutivo</h2>
-        <p style="color:#64748B;">Carga tu archivo de datos desde el panel lateral para comenzar el análisis.</p>
+    st.markdown(f"""
+    <div style="text-align:center; padding:4rem 2rem; background:white; border-radius:20px; border:1px solid #E2E8F0; max-width:550px; margin:3rem auto; box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+        <div style="font-size:4rem; margin-bottom:1.5rem;">📊</div>
+        <h2 style="color:{TEAL}; margin-bottom:0.5rem; font-weight:800;">Bienvenido</h2>
+        <p style="color:#64748B; font-size:1rem; margin-bottom:2rem;">
+            Carga la Sabana de Datos de Mercadeo<br>para visualizar el análisis completo.
+        </p>
+        <div style="background:#F8FAFC; padding:1rem; border-radius:12px; text-align:left;">
+            <p style="font-size:0.8rem; color:{TEAL}; font-weight:700; margin-bottom:0.5rem;">📋 Columnas esperadas:</p>
+            <p style="font-size:0.75rem; color:#64748B; margin:0;">
+                MacroProyecto, Medio Publicitario, Valor Neto, Ciudad, Fecha, Agrupación
+            </p>
+        </div>
     </div>
     """, unsafe_allow_html=True)
-    
-    with st.expander("📋 Ver estructura de datos requerida"):
-        st.markdown("""
-        | Columna | Descripción | Ejemplo |
-        |---------|-------------|---------|
-        | MacroProyecto | Nombre del proyecto | VENTAS AMARA |
-        | MedioPublicitario | Canal específico | INSTAGRAM |
-        | MacroCanal | Agrupación | DIGITAL, RELACIONAMIENTO |
-        | ValorNeto | Monto en COP | 235389706 |
-        | Ciudad | Ubicación | Medellín |
-        | Gama | Segmento | VIS/Acceso, Media, Alta, Premium |
-        | Fecha | Fecha de venta | 2025-01-15 |
-        """)
-    
     st.stop()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CARGAR DATOS
 # ══════════════════════════════════════════════════════════════════════════════
 
-try:
-    if uploaded_file.name.endswith('.csv'):
-        content = uploaded_file.read().decode('utf-8')
-        uploaded_file.seek(0)
-        sep = ';' if ';' in content[:1000] else ','
-        df = pd.read_csv(uploaded_file, sep=sep)
-    else:
-        df = pd.read_excel(uploaded_file)
-    
-    df = clean_df(df)
-    
-except Exception as e:
-    st.error(f"❌ Error al cargar el archivo: {str(e)}")
+df = load_data(uploaded_file)
+
+if df is None or df.empty:
+    st.error("❌ No se pudieron cargar los datos")
     st.stop()
 
-if df.empty:
-    st.error("❌ El archivo está vacío")
+# Verificar columnas requeridas
+required_cols = ['MacroProyecto', 'Valor Neto', 'Ciudad', 'Agrupación']
+missing_cols = [col for col in required_cols if col not in df.columns]
+if missing_cols:
+    st.error(f"❌ Faltan columnas: {', '.join(missing_cols)}")
+    st.write("Columnas encontradas:", list(df.columns))
     st.stop()
 
 # ══════════════════════════════════════════════════════════════════════════════
-# FILTROS EN SIDEBAR
+# FILTROS SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 
 with st.sidebar:
     st.markdown("---")
-    st.markdown("### 🎯 Filtros")
+    st.markdown(f"<p style='font-size:0.75rem; font-weight:700; color:{TEAL}; margin-bottom:0.5rem;'>🎯 FILTROS</p>", unsafe_allow_html=True)
     
-    if 'Ciudad' in df.columns:
-        ciudades = ['Todas'] + sorted(df['Ciudad'].unique().tolist())
-        filter_ciudad = st.selectbox("Ciudad", ciudades)
+    ciudades = ['Todas'] + sorted(df['Ciudad'].unique().tolist())
+    filter_ciudad = st.selectbox("Ciudad", ciudades)
     
-    if 'MacroCanal' in df.columns:
-        canales = ['Todos'] + sorted(df['MacroCanal'].unique().tolist())
-        filter_canal = st.selectbox("Canal", canales)
-    
-    if 'Gama' in df.columns:
-        gamas = ['Todas'] + sorted(df['Gama'].unique().tolist())
-        filter_gama = st.selectbox("Gama", gamas)
+    agrupaciones = ['Todas'] + sorted(df['Agrupación'].unique().tolist())
+    filter_agrupacion = st.selectbox("Agrupación", agrupaciones)
     
     st.markdown("---")
-    st.markdown(f"📊 **{len(df):,}** registros cargados")
+    st.markdown(f"""
+    <div style="background:linear-gradient(135deg, {TEAL} 0%, #0a3540 100%); padding:1rem; border-radius:12px; text-align:center;">
+        <p style="color:{LIME}; font-size:0.7rem; font-weight:700; margin:0;">REGISTROS CARGADOS</p>
+        <p style="color:white; font-size:1.5rem; font-weight:800; margin:0.5rem 0 0 0;">{format_num(len(df))}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Aplicar filtros
 df_f = df.copy()
-if filter_ciudad != 'Todas' and 'Ciudad' in df_f.columns:
+if filter_ciudad != 'Todas':
     df_f = df_f[df_f['Ciudad'] == filter_ciudad]
-if filter_canal != 'Todos' and 'MacroCanal' in df_f.columns:
-    df_f = df_f[df_f['MacroCanal'] == filter_canal]
-if filter_gama != 'Todas' and 'Gama' in df_f.columns:
-    df_f = df_f[df_f['Gama'] == filter_gama]
+if filter_agrupacion != 'Todas':
+    df_f = df_f[df_f['Agrupación'] == filter_agrupacion]
 
 if df_f.empty:
     st.warning("⚠️ No hay datos para los filtros seleccionados")
@@ -307,355 +315,427 @@ if df_f.empty:
 # KPIs
 # ══════════════════════════════════════════════════════════════════════════════
 
-total_ventas = df_f['ValorNeto'].sum()
-unidades = len(df_f)
-ticket = total_ventas / unidades if unidades > 0 else 0
-proyectos = df_f['MacroProyecto'].nunique() if 'MacroProyecto' in df_f.columns else 0
+total_ventas = df_f['Valor Neto'].sum()
+total_unidades = len(df_f)
+ticket = total_ventas / total_unidades if total_unidades > 0 else 0
+n_proyectos = df_f['MacroProyecto'].nunique()
+n_agrupaciones = df_f['Agrupación'].nunique()
+n_ciudades = df_f['Ciudad'].nunique()
 
-kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+k1, k2, k3, k4, k5, k6 = st.columns(6)
 
-with kpi1:
-    st.metric("💰 Venta Total", format_short(total_ventas), format_cop(total_ventas))
+with k1:
+    st.metric("💰 VENTA TOTAL", format_short(total_ventas), format_cop(total_ventas))
+with k2:
+    st.metric("🏠 UNIDADES", format_num(total_unidades), "Inmuebles vendidos")
+with k3:
+    st.metric("📈 TICKET PROMEDIO", format_short(ticket), "Por unidad")
+with k4:
+    st.metric("🏗️ PROYECTOS", n_proyectos, "Activos")
+with k5:
+    st.metric("📢 AGRUPACIONES", n_agrupaciones, "Canales")
+with k6:
+    st.metric("🌎 CIUDADES", n_ciudades, "Con operación")
 
-with kpi2:
-    st.metric("🏠 Unidades", f"{unidades:,}", "Inmuebles vendidos")
-
-with kpi3:
-    st.metric("📈 Ticket Promedio", format_short(ticket), format_cop(ticket))
-
-with kpi4:
-    st.metric("🏗️ Proyectos", proyectos, "Proyectos activos")
-
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# FILA 1: CIUDADES + EVOLUCIÓN
+# TABS
 # ══════════════════════════════════════════════════════════════════════════════
 
-st.markdown("### 🎯 Panorama General")
+tab1, tab2, tab3 = st.tabs(["📊 PANORAMA GENERAL", "📢 ANÁLISIS POR AGRUPACIÓN", "🏗️ PROYECTOS"])
 
-col1, col2 = st.columns(2)
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 1: PANORAMA GENERAL
+# ══════════════════════════════════════════════════════════════════════════════
 
-with col1:
-    st.markdown("**🏆 Ranking de Ciudades**")
+with tab1:
+    col1, col2 = st.columns(2)
     
-    if 'Ciudad' in df_f.columns:
-        city_data = df_f.groupby('Ciudad')['ValorNeto'].sum().sort_values(ascending=True).tail(6)
-        colors = [CIUDAD_COLORS.get(c, '#94A3B8') for c in city_data.index]
+    # RANKING CIUDADES
+    with col1:
+        st.markdown(f"<p style='font-weight:700; color:{TEAL}; margin-bottom:0.5rem;'>🏆 Ranking de Ciudades</p>", unsafe_allow_html=True)
         
-        fig = go.Figure(go.Bar(
-            y=city_data.index,
-            x=city_data.values,
+        city_data = df_f.groupby('Ciudad').agg({'Valor Neto': 'sum'}).reset_index()
+        city_data['Unidades'] = df_f.groupby('Ciudad').size().values
+        city_data = city_data.sort_values('Valor Neto', ascending=True)
+        
+        colors = [get_color(c, CIUDAD_COLORS, CORAL) for c in city_data['Ciudad']]
+        
+        fig = make_subplots(rows=1, cols=2, shared_yaxes=True,
+                           subplot_titles=('Ventas ($)', 'Unidades (#)'),
+                           horizontal_spacing=0.02)
+        
+        fig.add_trace(go.Bar(
+            y=city_data['Ciudad'],
+            x=city_data['Valor Neto'],
             orientation='h',
             marker_color=colors,
-            text=[format_short(v) for v in city_data.values],
+            text=[format_short(v) for v in city_data['Valor Neto']],
             textposition='outside',
-            textfont=dict(size=11)
+            textfont=dict(size=11, color='#1E293B'),
+            showlegend=False
+        ), row=1, col=1)
+        
+        fig.add_trace(go.Bar(
+            y=city_data['Ciudad'],
+            x=city_data['Unidades'],
+            orientation='h',
+            marker_color=[c + '99' for c in colors],
+            text=city_data['Unidades'].astype(int).astype(str),
+            textposition='outside',
+            textfont=dict(size=11, color='#1E293B'),
+            showlegend=False
+        ), row=1, col=2)
+        
+        fig.update_layout(
+            height=320,
+            margin=dict(l=0, r=50, t=30, b=10),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+        )
+        fig.update_xaxes(showgrid=False, showticklabels=False)
+        fig.update_yaxes(showgrid=False)
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # EVOLUCIÓN MENSUAL
+    with col2:
+        st.markdown(f"<p style='font-weight:700; color:{TEAL}; margin-bottom:0.5rem;'>📈 Evolución Mensual</p>", unsafe_allow_html=True)
+        
+        if 'Mes' in df_f.columns:
+            meses_nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+            monthly = df_f.groupby('Mes').agg({'Valor Neto': 'sum'}).reindex(range(1, 13), fill_value=0)
+            monthly_uds = df_f.groupby('Mes').size().reindex(range(1, 13), fill_value=0)
+            
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            
+            fig.add_trace(go.Scatter(
+                x=meses_nombres,
+                y=monthly['Valor Neto'],
+                mode='lines+markers',
+                fill='tozeroy',
+                name='Ventas ($)',
+                line=dict(color=CORAL, width=3),
+                fillcolor='rgba(255, 121, 90, 0.2)',
+                marker=dict(size=8, color=CORAL)
+            ), secondary_y=False)
+            
+            fig.add_trace(go.Scatter(
+                x=meses_nombres,
+                y=monthly_uds.values,
+                mode='lines+markers',
+                name='Unidades (#)',
+                line=dict(color=TEAL, width=3, dash='dot'),
+                marker=dict(size=8, color=TEAL, symbol='square')
+            ), secondary_y=True)
+            
+            fig.update_layout(
+                height=320,
+                margin=dict(l=0, r=0, t=10, b=10),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
+            )
+            fig.update_xaxes(showgrid=False)
+            fig.update_yaxes(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickformat='$.2s', secondary_y=False)
+            fig.update_yaxes(showgrid=False, secondary_y=True)
+            
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Se requiere columna 'Fecha'")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 2: ANÁLISIS POR AGRUPACIÓN
+# ══════════════════════════════════════════════════════════════════════════════
+
+with tab2:
+    st.markdown(f"<p style='font-weight:700; color:{TEAL}; margin-bottom:0.5rem;'>📢 Distribución por Agrupación (Canal)</p>", unsafe_allow_html=True)
+    
+    agrup_data = df_f.groupby('Agrupación').agg({'Valor Neto': 'sum'}).reset_index()
+    agrup_data['Unidades'] = df_f.groupby('Agrupación').size().values
+    agrup_data['Ticket'] = agrup_data['Valor Neto'] / agrup_data['Unidades']
+    agrup_data['% Ventas'] = (agrup_data['Valor Neto'] / agrup_data['Valor Neto'].sum() * 100).round(1)
+    agrup_data['% Unidades'] = (agrup_data['Unidades'] / agrup_data['Unidades'].sum() * 100).round(1)
+    agrup_data = agrup_data.sort_values('Valor Neto', ascending=False)
+    
+    colors = [get_color(a, AGRUPACION_COLORS, TEAL) for a in agrup_data['Agrupación']]
+    
+    col1, col2 = st.columns(2)
+    
+    # DONUT VENTAS
+    with col1:
+        fig = go.Figure(go.Pie(
+            labels=agrup_data['Agrupación'],
+            values=agrup_data['Valor Neto'],
+            hole=0.55,
+            marker=dict(colors=colors, line=dict(color='white', width=2)),
+            textinfo='percent+label',
+            textposition='outside',
+            textfont=dict(size=10),
+            hovertemplate='<b>%{label}</b><br>Ventas: $%{value:,.0f}<br>%{percent}<extra></extra>'
+        ))
+        fig.add_annotation(
+            text=f"<b>VENTAS</b><br>{format_short(agrup_data['Valor Neto'].sum())}", 
+            x=0.5, y=0.5, font=dict(size=14, color=TEAL), showarrow=False
+        )
+        fig.update_layout(
+            title=dict(text='Participación en Ventas ($)', font=dict(size=14, color=TEAL)),
+            height=350,
+            margin=dict(l=20, r=20, t=50, b=20),
+            showlegend=False,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # DONUT UNIDADES
+    with col2:
+        fig = go.Figure(go.Pie(
+            labels=agrup_data['Agrupación'],
+            values=agrup_data['Unidades'],
+            hole=0.55,
+            marker=dict(colors=colors, line=dict(color='white', width=2)),
+            textinfo='percent+label',
+            textposition='outside',
+            textfont=dict(size=10),
+            hovertemplate='<b>%{label}</b><br>Unidades: %{value:,.0f}<br>%{percent}<extra></extra>'
+        ))
+        fig.add_annotation(
+            text=f"<b>UNIDADES</b><br>{format_num(agrup_data['Unidades'].sum())}", 
+            x=0.5, y=0.5, font=dict(size=14, color=TEAL), showarrow=False
+        )
+        fig.update_layout(
+            title=dict(text='Participación en Unidades (#)', font=dict(size=14, color=TEAL)),
+            height=350,
+            margin=dict(l=20, r=20, t=50, b=20),
+            showlegend=False,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # TABLA RESUMEN POR AGRUPACIÓN
+    st.markdown(f"<p style='font-weight:700; color:{TEAL}; margin-top:1rem; margin-bottom:0.5rem;'>📋 Detalle por Agrupación</p>", unsafe_allow_html=True)
+    
+    for i, row in agrup_data.iterrows():
+        pct_ventas = row['% Ventas']
+        pct_uds = row['% Unidades']
+        color = get_color(row['Agrupación'], AGRUPACION_COLORS, TEAL)
+        
+        st.markdown(f"""
+        <div style="display:flex; align-items:center; gap:12px; padding:12px 16px; margin-bottom:8px; background:white; border-radius:12px; border-left:4px solid {color}; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+            <div style="flex:1;">
+                <div style="font-weight:700; font-size:0.95rem; color:#1E293B;">{row['Agrupación']}</div>
+            </div>
+            <div style="text-align:center; padding:0 1rem; border-left:1px solid #E2E8F0;">
+                <div style="font-size:0.7rem; color:#64748B;">VENTAS</div>
+                <div style="font-weight:700; color:{TEAL};">{format_short(row['Valor Neto'])}</div>
+                <div style="font-size:0.7rem; color:{CORAL};">{pct_ventas}%</div>
+            </div>
+            <div style="text-align:center; padding:0 1rem; border-left:1px solid #E2E8F0;">
+                <div style="font-size:0.7rem; color:#64748B;">UNIDADES</div>
+                <div style="font-weight:700; color:{TEAL};">{int(row['Unidades'])}</div>
+                <div style="font-size:0.7rem; color:{CORAL};">{pct_uds}%</div>
+            </div>
+            <div style="text-align:center; padding:0 1rem; border-left:1px solid #E2E8F0;">
+                <div style="font-size:0.7rem; color:#64748B;">TICKET</div>
+                <div style="font-weight:700; color:{CORAL};">{format_short(row['Ticket'])}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # TICKET POR AGRUPACIÓN
+    st.markdown(f"<p style='font-weight:700; color:{TEAL}; margin-top:1.5rem; margin-bottom:0.5rem;'>💵 Ticket Promedio por Agrupación</p>", unsafe_allow_html=True)
+    
+    agrup_sorted = agrup_data.sort_values('Ticket', ascending=True)
+    colors_sorted = [get_color(a, AGRUPACION_COLORS, TEAL) for a in agrup_sorted['Agrupación']]
+    
+    fig = go.Figure(go.Bar(
+        y=agrup_sorted['Agrupación'],
+        x=agrup_sorted['Ticket'],
+        orientation='h',
+        marker_color=colors_sorted,
+        text=[f"{format_short(v)} ({int(u)} uds)" for v, u in zip(agrup_sorted['Ticket'], agrup_sorted['Unidades'])],
+        textposition='outside',
+        textfont=dict(size=10)
+    ))
+    
+    fig.update_layout(
+        height=400,
+        margin=dict(l=0, r=150, t=10, b=10),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickformat='$.2s'),
+        yaxis=dict(showgrid=False),
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 3: PROYECTOS
+# ══════════════════════════════════════════════════════════════════════════════
+
+with tab3:
+    proy_data = df_f.groupby('MacroProyecto').agg({
+        'Valor Neto': 'sum',
+        'Ciudad': 'first'
+    }).reset_index()
+    proy_data['Unidades'] = df_f.groupby('MacroProyecto').size().values
+    proy_data['Ticket'] = proy_data['Valor Neto'] / proy_data['Unidades']
+    proy_data = proy_data.sort_values('Valor Neto', ascending=False)
+    
+    col1, col2 = st.columns([1.2, 1])
+    
+    with col1:
+        st.markdown(f"<p style='font-weight:700; color:{TEAL}; margin-bottom:0.5rem;'>🏆 Top 15 Proyectos por Ventas</p>", unsafe_allow_html=True)
+        
+        top15 = proy_data.head(15).sort_values('Valor Neto', ascending=True)
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            y=[p.strip() for p in top15['MacroProyecto']],
+            x=top15['Valor Neto'],
+            orientation='h',
+            marker=dict(
+                color=top15['Valor Neto'],
+                colorscale=[[0, TEAL], [0.5, LILAC], [1, CORAL]],
+                cornerradius=4
+            ),
+            text=[f"{format_short(v)} • {int(u)} uds" for v, u in zip(top15['Valor Neto'], top15['Unidades'])],
+            textposition='outside',
+            textfont=dict(size=10)
         ))
         
         fig.update_layout(
-            height=300,
-            margin=dict(l=0, r=60, t=10, b=10),
+            height=500,
+            margin=dict(l=0, r=120, t=10, b=10),
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             xaxis=dict(showgrid=False, showticklabels=False),
             yaxis=dict(showgrid=False),
-            font=dict(family='Poppins')
         )
         
         st.plotly_chart(fig, use_container_width=True)
-
-with col2:
-    st.markdown("**📈 Evolución Mensual**")
     
-    if 'Mes' in df_f.columns:
-        meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-        monthly = df_f.groupby('Mes')['ValorNeto'].sum().reindex(range(1, 13), fill_value=0)
+    with col2:
+        st.markdown(f"<p style='font-weight:700; color:{TEAL}; margin-bottom:0.5rem;'>📋 Detalle Top 10</p>", unsafe_allow_html=True)
         
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=meses,
-            y=monthly.values,
-            mode='lines+markers',
-            fill='tozeroy',
-            line=dict(color=COLORS['lime'], width=3),
-            fillcolor='rgba(219, 255, 105, 0.3)',
-            marker=dict(size=8)
-        ))
-        
-        fig.update_layout(
-            height=300,
-            margin=dict(l=0, r=0, t=10, b=10),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=False),
-            yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickformat='$.2s'),
-            font=dict(family='Poppins')
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("Se requiere columna 'Fecha' para mostrar evolución")
-
-# ══════════════════════════════════════════════════════════════════════════════
-# FILA 2: CANALES
-# ══════════════════════════════════════════════════════════════════════════════
-
-st.markdown("### 📢 Inteligencia de Canales")
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown("**Participación por Canal**")
-    
-    if 'MacroCanal' in df_f.columns:
-        canal_data = df_f.groupby('MacroCanal')['ValorNeto'].sum().sort_values(ascending=False)
-        total = canal_data.sum()
-        
-        colors = [CANAL_COLORS.get(c, '#94A3B8') for c in canal_data.index]
-        
-        fig = go.Figure(go.Pie(
-            labels=canal_data.index,
-            values=canal_data.values,
-            hole=0.6,
-            marker=dict(colors=colors),
-            textinfo='percent',
-            textposition='outside',
-            textfont=dict(size=11)
-        ))
-        
-        fig.update_layout(
-            height=280,
-            margin=dict(l=10, r=10, t=10, b=10),
-            showlegend=True,
-            legend=dict(
-                orientation='v',
-                yanchor='middle',
-                y=0.5,
-                xanchor='left',
-                x=1.05,
-                font=dict(size=10)
-            ),
-            font=dict(family='Poppins')
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-
-with col2:
-    st.markdown("**Ticket Promedio por Canal**")
-    
-    if 'MacroCanal' in df_f.columns:
-        ticket_data = df_f.groupby('MacroCanal').agg({'ValorNeto': ['sum', 'count']})
-        ticket_data.columns = ['Total', 'Count']
-        ticket_data['Ticket'] = ticket_data['Total'] / ticket_data['Count']
-        ticket_data = ticket_data.sort_values('Ticket', ascending=False)
-        
-        colors = [CANAL_COLORS.get(c, '#94A3B8') for c in ticket_data.index]
-        
-        fig = go.Figure(go.Bar(
-            x=ticket_data.index,
-            y=ticket_data['Ticket'],
-            marker_color=colors,
-            text=[format_short(v) for v in ticket_data['Ticket']],
-            textposition='outside',
-            textfont=dict(size=9)
-        ))
-        
-        fig.update_layout(
-            height=280,
-            margin=dict(l=0, r=0, t=20, b=40),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=False, tickangle=-20, tickfont=dict(size=9)),
-            yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showticklabels=False),
-            font=dict(family='Poppins'),
-            bargap=0.3
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-
-with col3:
-    st.markdown("**Distribución por Gama**")
-    
-    if 'Gama' in df_f.columns:
-        gama_data = df_f.groupby('Gama')['ValorNeto'].sum().sort_values(ascending=False)
-        
-        colors = [GAMA_COLORS.get(g, '#94A3B8') for g in gama_data.index]
-        
-        fig = go.Figure(go.Pie(
-            labels=gama_data.index,
-            values=gama_data.values,
-            hole=0.6,
-            marker=dict(colors=colors),
-            textinfo='percent',
-            textposition='outside',
-            textfont=dict(size=11)
-        ))
-        
-        fig.update_layout(
-            height=280,
-            margin=dict(l=10, r=10, t=10, b=10),
-            showlegend=True,
-            legend=dict(
-                orientation='v',
-                yanchor='middle',
-                y=0.5,
-                xanchor='left',
-                x=1.05,
-                font=dict(size=10)
-            ),
-            font=dict(family='Poppins')
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# FILA 3: MATRIZ + TOP PROYECTOS
-# ══════════════════════════════════════════════════════════════════════════════
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown("**📊 Matriz Canal × Gama**")
-    
-    if 'MacroCanal' in df_f.columns and 'Gama' in df_f.columns:
-        pivot = df_f.pivot_table(
-            index='MacroCanal',
-            columns='Gama',
-            values='ValorNeto',
-            aggfunc='sum',
-            fill_value=0
-        )
-        
-        # Ordenar por total
-        pivot['_total'] = pivot.sum(axis=1)
-        pivot = pivot.sort_values('_total', ascending=False).drop('_total', axis=1)
-        
-        gama_order = ['VIS/Acceso', 'Media', 'Alta', 'Premium']
-        gamas_present = [g for g in gama_order if g in pivot.columns]
-        
-        fig = go.Figure()
-        
-        for gama in gamas_present:
-            fig.add_trace(go.Bar(
-                name=gama,
-                x=pivot.index,
-                y=pivot[gama],
-                marker_color=GAMA_COLORS.get(gama, '#94A3B8')
-            ))
-        
-        fig.update_layout(
-            barmode='stack',
-            height=320,
-            margin=dict(l=0, r=0, t=10, b=50),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=False, tickangle=-20, tickfont=dict(size=10)),
-            yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickformat='$.2s'),
-            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
-            font=dict(family='Poppins'),
-            bargap=0.2
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-
-with col2:
-    st.markdown("**🏗️ Top 10 Proyectos**")
-    
-    if 'MacroProyecto' in df_f.columns:
-        proy_data = df_f.groupby('MacroProyecto').agg({
-            'ValorNeto': 'sum',
-            'Ciudad': 'first'
-        }).reset_index()
-        proy_data['Unidades'] = df_f.groupby('MacroProyecto').size().values
-        proy_data['Ticket'] = proy_data['ValorNeto'] / proy_data['Unidades']
-        proy_data = proy_data.sort_values('ValorNeto', ascending=False).head(10)
-        
-        # Mostrar como tabla estilizada
-        for i, row in proy_data.iterrows():
-            rank = proy_data.index.get_loc(i) + 1
-            nombre = row['MacroProyecto'].replace('VENTAS ', '')
+        for i, (_, row) in enumerate(proy_data.head(10).iterrows()):
+            rank = i + 1
+            nombre = row['MacroProyecto'].strip()
             ciudad = row['Ciudad']
-            uds = row['Unidades']
-            ventas = format_short(row['ValorNeto'])
+            uds = int(row['Unidades'])
+            ventas = format_short(row['Valor Neto'])
             ticket = format_short(row['Ticket'])
             
-            bg_color = COLORS['coral'] if rank <= 3 else COLORS['teal']
+            bg = CORAL if rank <= 3 else TEAL
             
             st.markdown(f"""
-            <div style="display:flex; align-items:center; gap:10px; padding:8px; margin-bottom:6px; background:white; border-radius:8px; border:1px solid #E2E8F0;">
-                <div style="width:28px; height:28px; background:{bg_color}; color:white; border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8rem;">{rank}</div>
-                <div style="flex:1;">
-                    <div style="font-weight:600; font-size:0.85rem; color:#1E293B;">{nombre}</div>
-                    <div style="font-size:0.7rem; color:#64748B;">{ciudad} • {uds} uds</div>
+            <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:8px; background:white; border-radius:10px; border:1px solid #E2E8F0;">
+                <div style="width:32px; height:32px; background:{bg}; color:white; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.85rem;">{rank}</div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; font-size:0.85rem; color:#1E293B; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{nombre}</div>
+                    <div style="font-size:0.7rem; color:#64748B;">📍 {ciudad} • 🏠 {uds} uds</div>
                 </div>
                 <div style="text-align:right;">
-                    <div style="font-weight:700; font-size:0.85rem; color:{COLORS['lime']}; background:{COLORS['teal']}; padding:2px 8px; border-radius:4px;">{ventas}</div>
-                    <div style="font-size:0.7rem; color:#64748B;">Ticket: {ticket}</div>
+                    <div style="font-weight:800; font-size:0.9rem; color:{LIME}; background:{TEAL}; padding:4px 10px; border-radius:6px;">{ventas}</div>
+                    <div style="font-size:0.65rem; color:#64748B; margin-top:2px;">Ticket: {ticket}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
+    
+    # UNIDADES POR PROYECTO
+    st.markdown(f"<p style='font-weight:700; color:{TEAL}; margin-top:1.5rem; margin-bottom:0.5rem;'>🏠 Top 15 Proyectos por Unidades Vendidas</p>", unsafe_allow_html=True)
+    
+    proy_uds = proy_data.sort_values('Unidades', ascending=False).head(15)
+    
+    fig = go.Figure(go.Bar(
+        x=[p.strip() for p in proy_uds['MacroProyecto']],
+        y=proy_uds['Unidades'],
+        marker=dict(
+            color=proy_uds['Unidades'],
+            colorscale=[[0, LIME], [0.5, CYAN], [1, TEAL]],
+            cornerradius=4
+        ),
+        text=proy_uds['Unidades'].astype(int),
+        textposition='outside',
+        textfont=dict(size=11, color=TEAL)
+    ))
+    
+    fig.update_layout(
+        height=350,
+        margin=dict(l=0, r=0, t=20, b=80),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(showgrid=False, tickangle=-35),
+        yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', title='Unidades'),
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # INSIGHTS
 # ══════════════════════════════════════════════════════════════════════════════
 
-st.markdown("### ✨ Insights Clave")
+st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+st.markdown(f"<p style='font-weight:700; color:{TEAL}; margin-bottom:0.5rem;'>✨ Insights Ejecutivos</p>", unsafe_allow_html=True)
 
-ins1, ins2, ins3 = st.columns(3)
+ins1, ins2, ins3, ins4 = st.columns(4)
+
+# Calcular insights
+agrup_ticket = df_f.groupby('Agrupación').agg({'Valor Neto': ['sum', 'count']})
+agrup_ticket.columns = ['Total', 'Count']
+agrup_ticket['Ticket'] = agrup_ticket['Total'] / agrup_ticket['Count']
 
 with ins1:
-    if 'MacroCanal' in df_f.columns:
-        canal_ticket = df_f.groupby('MacroCanal').agg({'ValorNeto': ['sum', 'count']})
-        canal_ticket.columns = ['Total', 'Count']
-        canal_ticket['Ticket'] = canal_ticket['Total'] / canal_ticket['Count']
-        top_canal = canal_ticket['Ticket'].idxmax()
-        top_val = canal_ticket.loc[top_canal, 'Ticket']
-        
-        st.markdown(f"""
-        <div style="background:white; padding:1rem; border-radius:12px; border:1px solid #E2E8F0;">
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                <div style="width:10px; height:10px; background:{COLORS['lime']}; border-radius:50%;"></div>
-                <span style="font-size:0.75rem; font-weight:700; color:{COLORS['lime']};">CANAL ESTRELLA</span>
-            </div>
-            <p style="font-size:0.85rem; color:#64748B; margin:0;">
-                <strong style="color:#1E293B;">{top_canal}</strong> genera el ticket promedio más alto con <strong style="color:#1E293B;">{format_short(top_val)}</strong>
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+    top_agrup = agrup_ticket['Ticket'].idxmax()
+    top_val = agrup_ticket.loc[top_agrup, 'Ticket']
+    
+    st.markdown(f"""
+    <div style="background:white; padding:1rem; border-radius:12px; border-left:4px solid {CYAN}; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <div style="font-size:0.7rem; font-weight:700; color:{CYAN}; margin-bottom:6px;">🌟 MAYOR TICKET</div>
+        <p style="font-size:0.85rem; color:#64748B; margin:0;">
+            <strong style="color:#1E293B;">{top_agrup}</strong> tiene el ticket más alto: <strong style="color:{CORAL};">{format_short(top_val)}</strong>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 with ins2:
-    if 'MacroCanal' in df_f.columns:
-        low_canal = canal_ticket['Ticket'].idxmin()
-        
-        st.markdown(f"""
-        <div style="background:white; padding:1rem; border-radius:12px; border:1px solid #E2E8F0;">
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                <div style="width:10px; height:10px; background:{COLORS['coral']}; border-radius:50%;"></div>
-                <span style="font-size:0.75rem; font-weight:700; color:{COLORS['coral']};">OPORTUNIDAD</span>
-            </div>
-            <p style="font-size:0.85rem; color:#64748B; margin:0;">
-                <strong style="color:#1E293B;">{low_canal}</strong> tiene el ticket más bajo. Oportunidad de mejorar conversión.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+    top_vol = agrup_ticket['Count'].idxmax()
+    top_count = agrup_ticket.loc[top_vol, 'Count']
+    
+    st.markdown(f"""
+    <div style="background:white; padding:1rem; border-radius:12px; border-left:4px solid {LIME}; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <div style="font-size:0.7rem; font-weight:700; color:{TEAL}; margin-bottom:6px;">📊 MAYOR VOLUMEN</div>
+        <p style="font-size:0.85rem; color:#64748B; margin:0;">
+            <strong style="color:#1E293B;">{top_vol}</strong> lidera con <strong style="color:{CORAL};">{int(top_count)}</strong> unidades
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 with ins3:
-    if 'Ciudad' in df_f.columns:
-        top_ciudad = df_f.groupby('Ciudad')['ValorNeto'].sum().idxmax()
-        n_proy = df_f[df_f['Ciudad'] == top_ciudad]['MacroProyecto'].nunique()
-        
-        st.markdown(f"""
-        <div style="background:white; padding:1rem; border-radius:12px; border:1px solid #E2E8F0;">
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                <div style="width:10px; height:10px; background:{COLORS['lilac']}; border-radius:50%;"></div>
-                <span style="font-size:0.75rem; font-weight:700; color:{COLORS['lilac']};">MERCADO LÍDER</span>
-            </div>
-            <p style="font-size:0.85rem; color:#64748B; margin:0;">
-                <strong style="color:#1E293B;">{top_ciudad}</strong> concentra el mayor volumen con <strong style="color:#1E293B;">{n_proy}</strong> proyectos activos.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+    top_ciudad = df_f.groupby('Ciudad')['Valor Neto'].sum().idxmax()
+    ciudad_pct = (df_f[df_f['Ciudad'] == top_ciudad]['Valor Neto'].sum() / total_ventas * 100)
+    
+    st.markdown(f"""
+    <div style="background:white; padding:1rem; border-radius:12px; border-left:4px solid {LILAC}; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <div style="font-size:0.7rem; font-weight:700; color:{LILAC}; margin-bottom:6px;">🌎 MERCADO LÍDER</div>
+        <p style="font-size:0.85rem; color:#64748B; margin:0;">
+            <strong style="color:#1E293B;">{top_ciudad}</strong> concentra el <strong style="color:{CORAL};">{ciudad_pct:.1f}%</strong> de ventas
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with ins4:
+    top_proy = df_f.groupby('MacroProyecto')['Valor Neto'].sum().idxmax().strip()
+    top_proy_val = df_f.groupby('MacroProyecto')['Valor Neto'].sum().max()
+    
+    st.markdown(f"""
+    <div style="background:white; padding:1rem; border-radius:12px; border-left:4px solid {CORAL}; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <div style="font-size:0.7rem; font-weight:700; color:{CORAL}; margin-bottom:6px;">🏆 PROYECTO TOP</div>
+        <p style="font-size:0.85rem; color:#64748B; margin:0;">
+            <strong style="color:#1E293B;">{top_proy}</strong> lidera con <strong style="color:{CORAL};">{format_short(top_proy_val)}</strong>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FOOTER
@@ -663,10 +743,13 @@ with ins3:
 
 st.markdown("---")
 st.markdown(f"""
-<div style="text-align:center; padding:1rem 0;">
-    <p style="font-size:0.8rem; color:#64748B; margin:0;">
-        Dashboard Ejecutivo • Gran Convención de Ventas CONALTURA 2025<br>
-        <span style="opacity:0.7;">Registros: {len(df_f):,} de {len(df):,}</span>
+<div style="text-align:center; padding:1.5rem 0;">
+    <p style="font-size:0.85rem; color:{TEAL}; font-weight:600; margin:0;">
+        Dashboard Ejecutivo • Gran Convención de Ventas CONALTURA 2025
+    </p>
+    <p style="font-size:0.75rem; color:#64748B; margin-top:0.5rem;">
+        Total: {format_num(len(df_f))} de {format_num(len(df))} registros | 
+        Filtros: {sum([1 for f in [filter_ciudad, filter_agrupacion] if f != 'Todas'])} activos
     </p>
 </div>
 """, unsafe_allow_html=True)
