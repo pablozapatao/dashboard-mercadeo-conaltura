@@ -597,7 +597,7 @@ with tab3:
             marker=dict(
                 color=top15['Valor Neto'],
                 colorscale=[[0, TEAL], [0.5, LILAC], [1, CORAL]],
-                cornerradius=4
+                
             ),
             text=[f"{format_short(v)} • {int(u)} uds" for v, u in zip(top15['Valor Neto'], top15['Unidades'])],
             textposition='outside',
@@ -653,7 +653,7 @@ with tab3:
         marker=dict(
             color=proy_uds['Unidades'],
             colorscale=[[0, LIME], [0.5, CYAN], [1, TEAL]],
-            cornerradius=4
+            
         ),
         text=proy_uds['Unidades'].astype(int),
         textposition='outside',
