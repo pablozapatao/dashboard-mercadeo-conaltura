@@ -1,12 +1,14 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════════════════╗
-║                    CONALTURA - DASHBOARD COMERCIAL 2025                              ║
-║                    UI/UX Premium - Junta Internacional                               ║
+║                    CONALTURA - DASHBOARD EJECUTIVO 2025                              ║
+║                    Gran Convención de Ventas                                         ║
 ║                                                                                      ║
-║  INSTRUCCIONES:                                                                      ║
-║  1. Coloca el archivo 'logo.png' en el mismo directorio que app.py                  ║
-║  2. Ejecuta: streamlit run app.py                                                   ║
-║  3. Carga tu archivo CSV/Excel con los datos de ventas                              ║
+║  Principios BI aplicados:                                                           ║
+║  • KPIs claros con contexto                                                         ║
+║  • Participación % sobre el total                                                   ║
+║  • Leyendas visibles y completas                                                    ║
+║  • Análisis por canal, ciudad, proyecto y gama                                      ║
+║  • Insights ejecutivos automáticos                                                  ║
 ╚══════════════════════════════════════════════════════════════════════════════════════╝
 """
 
@@ -14,398 +16,492 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import base64
 from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
 
 # ══════════════════════════════════════════════════════════════════════════════════════
-# CONFIGURACIÓN INICIAL
+# CONFIGURACIÓN
 # ══════════════════════════════════════════════════════════════════════════════════════
 
 st.set_page_config(
-    page_title="Conaltura | Gerencia Comercial",
+    page_title="Conaltura | Dashboard Ejecutivo",
     page_icon="🏢",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ══════════════════════════════════════════════════════════════════════════════════════
-# PALETA DE COLORES CONALTURA
+# PALETA DE COLORES - SISTEMA DE DISEÑO CONALTURA
 # ══════════════════════════════════════════════════════════════════════════════════════
 
 COLORS = {
-    'primary': '#125160',       # Verde Petróleo - Títulos, textos principales
-    'accent': '#FF795A',        # Naranja Vibrante - Destacados, Digital
-    'lime': '#DBFF69',          # Verde Lima - Acentos positivos
-    'neutral': '#D3D3D3',       # Gris suave - Neutros
-    'bg_app': '#F9F9F9',        # Fondo de la app
-    'bg_card': '#FFFFFF',       # Fondo de tarjetas
-    'text_dark': '#125160',     # Texto oscuro
-    'text_muted': '#6B7280',    # Texto secundario
-    'success': '#10B981',       # Verde éxito
-    'border': '#E5E7EB'         # Bordes
+    'teal': '#125160',
+    'lime': '#DBFF69',
+    'coral': '#FF795A',
+    'lilac': '#B382FF',
+    'lime_light': '#E8FFB0',
+    'gray': '#94A3B8',
+    'bg': '#F8FAFC',
+    'card': '#FFFFFF',
+    'text': '#1E293B',
+    'text_muted': '#64748B',
+    'border': '#E2E8F0',
+    'success': '#10B981',
 }
 
-# Secuencia para gráficos
-CHART_SEQUENCE = ['#FF795A', '#125160', '#DBFF69', '#B382FF', '#A1D81A', '#F97316']
+# Colores por MacroCanal
+CANAL_COLORS = {
+    'DIGITAL': '#DBFF69',
+    'RELACIONAMIENTO': '#125160',
+    'EXPERIENCIA': '#B382FF',
+    'EVENTOS': '#FF795A',
+    'TRADICIONAL': '#A8D861',
+    'OTROS': '#94A3B8',
+    'SIN DEFINIR': '#CBD5E1',
+}
+
+# Colores por Gama
+GAMA_COLORS = {
+    'VIS/Acceso': '#E8FFB0',
+    'Media': '#DBFF69',
+    'Alta': '#B382FF',
+    'Premium': '#FF795A',
+}
+
+# Colores por Ciudad
+CIUDAD_COLORS = {
+    'Medellín': '#125160',
+    'Barranquilla': '#FF795A',
+    'Bogotá': '#B382FF',
+    'Cali': '#DBFF69',
+    'Cartagena': '#E8FFB0',
+    'Sabaneta': '#A8D861',
+    'Pereira': '#94A3B8',
+}
 
 # ══════════════════════════════════════════════════════════════════════════════════════
-# CSS PREMIUM - INYECCIÓN DE ESTILOS PERSONALIZADOS
+# CSS PROFESIONAL
 # ══════════════════════════════════════════════════════════════════════════════════════
 
 st.markdown(f"""
 <style>
-    /* ══════════════════════════════════════════════════════════════════════════════
-       IMPORTACIÓN DE FUENTE POPPINS
-    ══════════════════════════════════════════════════════════════════════════════ */
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
     
-    /* ══════════════════════════════════════════════════════════════════════════════
-       RESET Y BASE
-    ══════════════════════════════════════════════════════════════════════════════ */
-    *, *::before, *::after {{
-        font-family: 'Poppins', sans-serif !important;
-    }}
+    * {{ font-family: 'Poppins', sans-serif !important; }}
     
-    /* Fondo principal de la app */
-    .stApp {{
-        background-color: {COLORS['bg_app']} !important;
-    }}
+    .stApp {{ background-color: {COLORS['bg']} !important; }}
     
     .main .block-container {{
-        padding: 2rem 3rem !important;
-        max-width: 1400px;
+        padding: 1.5rem 2rem !important;
+        max-width: 1600px;
     }}
     
-    /* ══════════════════════════════════════════════════════════════════════════════
-       SIDEBAR - ELEGANTE Y FUNCIONAL
-    ══════════════════════════════════════════════════════════════════════════════ */
-    [data-testid="stSidebar"] {{
-        background: linear-gradient(180deg, {COLORS['primary']} 0%, #0a3540 100%) !important;
-    }}
-    
-    [data-testid="stSidebar"] [data-testid="stMarkdown"] {{
-        color: white !important;
-    }}
-    
-    /* Labels de selectores en sidebar - MUY IMPORTANTE: legibles */
-    [data-testid="stSidebar"] .stSelectbox label,
-    [data-testid="stSidebar"] .stMultiSelect label,
-    [data-testid="stSidebar"] .stDateInput label,
-    [data-testid="stSidebar"] .stFileUploader label {{
-        color: {COLORS['lime']} !important;
-        font-weight: 600 !important;
-        font-size: 0.85rem !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
-    }}
-    
-    /* Selectores dentro del sidebar - fondo blanco, texto oscuro */
-    [data-testid="stSidebar"] .stSelectbox > div > div,
-    [data-testid="stSidebar"] .stMultiSelect > div > div {{
-        background-color: white !important;
-        border-radius: 10px !important;
-        border: none !important;
-    }}
-    
-    [data-testid="stSidebar"] .stSelectbox > div > div > div,
-    [data-testid="stSidebar"] [data-baseweb="select"] span {{
-        color: {COLORS['text_dark']} !important;
-    }}
-    
-    /* ══════════════════════════════════════════════════════════════════════════════
-       TARJETAS KPI - DISEÑO PREMIUM
-    ══════════════════════════════════════════════════════════════════════════════ */
-    .kpi-card {{
-        background: {COLORS['bg_card']};
-        border-radius: 16px;
-        padding: 1.8rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        border: 1px solid {COLORS['border']};
-        transition: all 0.3s ease;
-        height: 100%;
-    }}
-    
-    .kpi-card:hover {{
-        transform: translateY(-4px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }}
-    
-    .kpi-icon {{
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-    }}
-    
-    .kpi-icon-orange {{ background: rgba(255, 121, 90, 0.15); }}
-    .kpi-icon-green {{ background: rgba(18, 81, 96, 0.15); }}
-    .kpi-icon-lime {{ background: rgba(219, 255, 105, 0.3); }}
-    
-    .kpi-label {{
-        color: {COLORS['text_muted']};
-        font-size: 0.85rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.5rem;
-    }}
-    
-    .kpi-value {{
-        color: {COLORS['text_dark']};
-        font-size: 2rem;
-        font-weight: 700;
-        line-height: 1.2;
-        margin-bottom: 0.3rem;
-    }}
-    
-    .kpi-change {{
-        font-size: 0.85rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }}
-    
-    .kpi-change-positive {{ color: {COLORS['success']}; }}
-    .kpi-change-accent {{ color: {COLORS['accent']}; }}
-    
-    /* ══════════════════════════════════════════════════════════════════════════════
-       SECCIONES Y CONTENEDORES
-    ══════════════════════════════════════════════════════════════════════════════ */
-    .section-container {{
-        background: {COLORS['bg_card']};
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        border: 1px solid {COLORS['border']};
-        margin-bottom: 1.5rem;
-    }}
-    
-    .section-title {{
-        color: {COLORS['text_dark']};
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 2px solid {COLORS['border']};
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }}
-    
-    .section-title-icon {{
-        font-size: 1.2rem;
-    }}
-    
-    /* ══════════════════════════════════════════════════════════════════════════════
-       HEADER
-    ══════════════════════════════════════════════════════════════════════════════ */
-    .header-container {{
+    /* Header */
+    .header-main {{
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 1rem 0 2rem 0;
+        padding: 1rem 0 1.5rem 0;
         border-bottom: 1px solid {COLORS['border']};
-        margin-bottom: 2rem;
-    }}
-    
-    .header-left {{
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }}
-    
-    .header-logo {{
-        height: 50px;
-    }}
-    
-    .header-title {{
-        color: {COLORS['text_dark']};
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin: 0;
-    }}
-    
-    .header-subtitle {{
-        color: {COLORS['text_muted']};
-        font-size: 0.9rem;
-        margin: 0;
-    }}
-    
-    .header-badge {{
-        background: linear-gradient(135deg, {COLORS['accent']} 0%, #e5684a 100%);
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }}
-    
-    /* ══════════════════════════════════════════════════════════════════════════════
-       WELCOME SCREEN
-    ══════════════════════════════════════════════════════════════════════════════ */
-    .welcome-container {{
-        text-align: center;
-        padding: 4rem 2rem;
-        background: {COLORS['bg_card']};
-        border-radius: 20px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        max-width: 600px;
-        margin: 3rem auto;
-    }}
-    
-    .welcome-icon {{
-        font-size: 4rem;
         margin-bottom: 1.5rem;
     }}
     
-    .welcome-title {{
-        color: {COLORS['text_dark']};
-        font-size: 1.8rem;
-        font-weight: 700;
-        margin-bottom: 1rem;
-    }}
-    
-    .welcome-text {{
-        color: {COLORS['text_muted']};
-        font-size: 1rem;
-        margin-bottom: 2rem;
-        line-height: 1.6;
-    }}
-    
-    .welcome-steps {{
-        text-align: left;
-        background: {COLORS['bg_app']};
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin-top: 1.5rem;
-    }}
-    
-    .welcome-step {{
+    .header-brand {{
         display: flex;
         align-items: center;
         gap: 1rem;
-        padding: 0.75rem 0;
-        color: {COLORS['text_dark']};
-        font-size: 0.95rem;
     }}
     
-    .step-number {{
-        background: {COLORS['accent']};
-        color: white;
-        width: 28px;
-        height: 28px;
+    .header-title {{
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: {COLORS['text']};
+        margin: 0;
+    }}
+    
+    .header-title span {{
+        color: {COLORS['lime']};
+        background: {COLORS['teal']};
+        padding: 0 0.3rem;
+        border-radius: 4px;
+    }}
+    
+    .header-subtitle {{
+        font-size: 0.85rem;
+        color: {COLORS['text_muted']};
+        margin: 0;
+    }}
+    
+    /* KPI Cards */
+    .kpi-grid {{
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }}
+    
+    .kpi-card {{
+        background: {COLORS['card']};
+        border-radius: 16px;
+        padding: 1.25rem;
+        border: 1px solid {COLORS['border']};
+        position: relative;
+        overflow: hidden;
+    }}
+    
+    .kpi-card::before {{
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
+        filter: blur(40px);
+        opacity: 0.3;
+    }}
+    
+    .kpi-card.lime::before {{ background: {COLORS['lime']}; }}
+    .kpi-card.lilac::before {{ background: {COLORS['lilac']}; }}
+    .kpi-card.coral::before {{ background: {COLORS['coral']}; }}
+    .kpi-card.teal::before {{ background: {COLORS['teal']}; }}
+    
+    .kpi-header {{
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }}
+    
+    .kpi-icon {{
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 1.2rem;
+    }}
+    
+    .kpi-icon.lime {{ background: rgba(219, 255, 105, 0.2); }}
+    .kpi-icon.lilac {{ background: rgba(179, 130, 255, 0.2); }}
+    .kpi-icon.coral {{ background: rgba(255, 121, 90, 0.2); }}
+    .kpi-icon.teal {{ background: rgba(18, 81, 96, 0.15); }}
+    
+    .kpi-label {{
+        font-size: 0.7rem;
         font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: {COLORS['text_muted']};
+    }}
+    
+    .kpi-value {{
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: {COLORS['text']};
+        line-height: 1.2;
+    }}
+    
+    .kpi-detail {{
+        font-size: 0.75rem;
+        color: {COLORS['text_muted']};
+        margin-top: 0.25rem;
+    }}
+    
+    /* Section */
+    .section-header {{
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }}
+    
+    .section-icon {{
+        font-size: 1.1rem;
+    }}
+    
+    .section-title {{
+        font-size: 1rem;
+        font-weight: 700;
+        color: {COLORS['text']};
+        margin: 0;
+    }}
+    
+    /* Chart Card */
+    .chart-card {{
+        background: {COLORS['card']};
+        border-radius: 16px;
+        padding: 1.25rem;
+        border: 1px solid {COLORS['border']};
+        height: 100%;
+    }}
+    
+    .chart-title {{
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: {COLORS['text']};
+        margin-bottom: 0.25rem;
+    }}
+    
+    .chart-subtitle {{
+        font-size: 0.75rem;
+        color: {COLORS['text_muted']};
+        margin-bottom: 1rem;
+    }}
+    
+    /* Legend inline */
+    .legend-inline {{
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }}
+    
+    .legend-item {{
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+    }}
+    
+    .legend-dot {{
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }}
+    
+    .legend-label {{
+        color: {COLORS['text_muted']};
+        flex: 1;
+    }}
+    
+    .legend-value {{
+        font-weight: 700;
+        color: {COLORS['text']};
+    }}
+    
+    /* Proyecto ranking */
+    .proyecto-item {{
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 0.75rem;
+        border-radius: 10px;
+        transition: background 0.2s;
+    }}
+    
+    .proyecto-item:hover {{
+        background: {COLORS['bg']};
+    }}
+    
+    .proyecto-rank {{
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: white;
+        flex-shrink: 0;
+    }}
+    
+    .proyecto-rank.top {{ background: {COLORS['coral']}; }}
+    .proyecto-rank.normal {{ background: {COLORS['teal']}; }}
+    
+    .proyecto-info {{
+        flex: 1;
+        min-width: 0;
+    }}
+    
+    .proyecto-name {{
         font-size: 0.85rem;
+        font-weight: 600;
+        color: {COLORS['text']};
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }}
     
-    /* ══════════════════════════════════════════════════════════════════════════════
-       DATAFRAME STYLING
-    ══════════════════════════════════════════════════════════════════════════════ */
-    .stDataFrame {{
-        border-radius: 12px !important;
-        overflow: hidden !important;
+    .proyecto-meta {{
+        font-size: 0.7rem;
+        color: {COLORS['text_muted']};
     }}
     
-    [data-testid="stDataFrame"] > div {{
-        border-radius: 12px !important;
+    .proyecto-values {{
+        text-align: right;
+        flex-shrink: 0;
     }}
     
-    /* ══════════════════════════════════════════════════════════════════════════════
-       OCULTAR ELEMENTOS DE STREAMLIT
-    ══════════════════════════════════════════════════════════════════════════════ */
+    .proyecto-ventas {{
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: {COLORS['lime']};
+        background: {COLORS['teal']};
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+    }}
+    
+    .proyecto-ticket {{
+        font-size: 0.7rem;
+        color: {COLORS['text_muted']};
+        margin-top: 0.2rem;
+    }}
+    
+    /* Insights */
+    .insights-container {{
+        background: rgba(18, 81, 96, 0.05);
+        border: 1px solid rgba(18, 81, 96, 0.2);
+        border-radius: 16px;
+        padding: 1.25rem;
+    }}
+    
+    .insight-card {{
+        background: {COLORS['card']};
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid {COLORS['border']};
+    }}
+    
+    .insight-badge {{
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }}
+    
+    .insight-badge-dot {{
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }}
+    
+    .insight-text {{
+        font-size: 0.8rem;
+        color: {COLORS['text_muted']};
+        line-height: 1.5;
+    }}
+    
+    .insight-text strong {{
+        color: {COLORS['text']};
+    }}
+    
+    /* Welcome */
+    .welcome-box {{
+        background: {COLORS['card']};
+        border-radius: 20px;
+        padding: 3rem;
+        text-align: center;
+        max-width: 500px;
+        margin: 2rem auto;
+        border: 1px solid {COLORS['border']};
+    }}
+    
+    .welcome-icon {{ font-size: 3rem; margin-bottom: 1rem; }}
+    .welcome-title {{ font-size: 1.5rem; font-weight: 700; color: {COLORS['text']}; margin-bottom: 0.5rem; }}
+    .welcome-text {{ color: {COLORS['text_muted']}; margin-bottom: 1.5rem; }}
+    
+    /* Footer */
+    .footer {{
+        text-align: center;
+        padding: 1.5rem 0;
+        border-top: 1px solid {COLORS['border']};
+        margin-top: 2rem;
+    }}
+    
+    .footer-text {{
+        font-size: 0.75rem;
+        color: {COLORS['text_muted']};
+    }}
+    
+    /* Ocultar elementos Streamlit */
     #MainMenu {{visibility: hidden;}}
     footer {{visibility: hidden;}}
     header {{visibility: hidden;}}
-    
-    /* Ocultar el decorador de streamlit */
     .stDeployButton {{display: none;}}
     
-    /* ══════════════════════════════════════════════════════════════════════════════
-       RESPONSIVE
-    ══════════════════════════════════════════════════════════════════════════════ */
+    /* Filtros */
+    .stSelectbox > div > div {{
+        background: {COLORS['card']} !important;
+        border-radius: 10px !important;
+    }}
+    
+    @media (max-width: 1200px) {{
+        .kpi-grid {{ grid-template-columns: repeat(2, 1fr); }}
+    }}
+    
     @media (max-width: 768px) {{
-        .kpi-value {{
-            font-size: 1.5rem;
-        }}
-        .main .block-container {{
-            padding: 1rem !important;
-        }}
+        .kpi-grid {{ grid-template-columns: 1fr; }}
+        .kpi-value {{ font-size: 1.5rem; }}
     }}
 </style>
 """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════════════
-# FUNCIONES DE UTILIDAD
+# FUNCIONES UTILIDAD
 # ══════════════════════════════════════════════════════════════════════════════════════
 
 def format_cop(value):
-    """Formatea números como moneda COP sin decimales"""
+    """Formato completo COP"""
     try:
         if pd.isna(value) or value == 0:
-            return "$ 0"
-        # Formato con puntos como separador de miles (estilo colombiano)
-        return f"$ {value:,.0f}".replace(",", ".")
+            return "$0"
+        return f"${value:,.0f}".replace(",", ".")
     except:
-        return "$ 0"
+        return "$0"
 
 def format_cop_short(value):
-    """Formato corto para KPIs grandes"""
+    """Formato corto para KPIs"""
     try:
         if pd.isna(value) or value == 0:
-            return "$ 0"
+            return "$0"
+        if value >= 1_000_000_000_000:
+            return f"${value/1_000_000_000_000:.2f}T"
         if value >= 1_000_000_000:
-            return f"$ {value/1_000_000_000:,.1f}B".replace(",", ".")
-        elif value >= 1_000_000:
-            return f"$ {value/1_000_000:,.0f}M".replace(",", ".")
-        elif value >= 1_000:
-            return f"$ {value/1_000:,.0f}K".replace(",", ".")
-        else:
-            return f"$ {value:,.0f}".replace(",", ".")
+            return f"${value/1_000_000_000:.1f}B"
+        if value >= 1_000_000:
+            return f"${value/1_000_000:.0f}M"
+        return f"${value/1_000:.0f}K"
     except:
-        return "$ 0"
+        return "$0"
 
 def get_logo_base64():
-    """Intenta cargar el logo y convertirlo a base64"""
-    logo_paths = ['logo.png', './logo.png', 'assets/logo.png']
-    for path in logo_paths:
+    """Cargar logo"""
+    for path in ['logo.png', './logo.png']:
         if Path(path).exists():
             with open(path, "rb") as f:
                 return base64.b64encode(f.read()).decode()
     return None
 
 def clean_columns(df):
-    """Normaliza nombres de columnas"""
+    """Normaliza columnas"""
     mapping = {
         'macroproyecto': 'MacroProyecto',
         'macro_proyecto': 'MacroProyecto',
         'proyecto': 'MacroProyecto',
-        'medio_publicitario': 'Medio Publicitario',
-        'mediopublicitario': 'Medio Publicitario',
-        'medio': 'Medio Publicitario',
-        'canal': 'Medio Publicitario',
-        'valor_neto': 'Valor Neto',
-        'valorneto': 'Valor Neto',
-        'valor': 'Valor Neto',
-        'ingresos': 'Valor Neto',
-        'ventas': 'Valor Neto',
+        'medio_publicitario': 'MedioPublicitario',
+        'mediopublicitario': 'MedioPublicitario',
+        'medio': 'MedioPublicitario',
+        'canal': 'MedioPublicitario',
+        'valor_neto': 'ValorNeto',
+        'valorneto': 'ValorNeto',
+        'valor': 'ValorNeto',
+        'ventas': 'ValorNeto',
         'ciudad': 'Ciudad',
         'fecha': 'Fecha',
-        'agrupacion': 'Agrupación',
-        'agrupación': 'Agrupación',
-        'categoria': 'Agrupación',
-        'tipo': 'Agrupación'
+        'mes': 'Mes',
+        'macrocanal': 'MacroCanal',
+        'macro_canal': 'MacroCanal',
+        'agrupacion': 'MacroCanal',
+        'agrupación': 'MacroCanal',
+        'gama': 'Gama',
+        'segmento': 'Gama',
     }
     
     df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
@@ -413,422 +509,502 @@ def clean_columns(df):
     return df
 
 def load_data(uploaded_file):
-    """Carga y procesa el archivo"""
+    """Carga datos"""
     try:
         if uploaded_file.name.endswith('.csv'):
-            # Intentar detectar separador
             content = uploaded_file.read().decode('utf-8')
             uploaded_file.seek(0)
-            separator = ';' if ';' in content[:1000] else ','
-            df = pd.read_csv(uploaded_file, sep=separator, encoding='utf-8')
+            sep = ';' if ';' in content[:1000] else ','
+            df = pd.read_csv(uploaded_file, sep=sep)
         else:
             df = pd.read_excel(uploaded_file)
         
         df = clean_columns(df)
         
-        # Procesar fecha
         if 'Fecha' in df.columns:
             df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
-            df['Mes'] = df['Fecha'].dt.to_period('M').astype(str)
+            df['Mes'] = df['Fecha'].dt.month
         
-        # Procesar valor
-        if 'Valor Neto' in df.columns:
-            df['Valor Neto'] = pd.to_numeric(df['Valor Neto'], errors='coerce').fillna(0)
+        if 'ValorNeto' in df.columns:
+            df['ValorNeto'] = pd.to_numeric(df['ValorNeto'], errors='coerce').fillna(0)
         
-        # Limpiar categóricas
-        for col in ['MacroProyecto', 'Medio Publicitario', 'Ciudad', 'Agrupación']:
+        for col in ['MacroProyecto', 'MedioPublicitario', 'Ciudad', 'MacroCanal', 'Gama']:
             if col in df.columns:
                 df[col] = df[col].fillna('Sin Definir').astype(str).str.strip()
         
         return df
     except Exception as e:
-        st.error(f"Error al cargar: {str(e)}")
+        st.error(f"Error: {str(e)}")
         return None
 
 # ══════════════════════════════════════════════════════════════════════════════════════
-# COMPONENTES UI
+# COMPONENTES
 # ══════════════════════════════════════════════════════════════════════════════════════
 
 def render_header():
-    """Renderiza el header con logo"""
+    """Header con logo"""
     logo_b64 = get_logo_base64()
-    
-    if logo_b64:
-        logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="header-logo" alt="Conaltura">'
-    else:
-        logo_html = f'<span style="font-size: 2rem; color: {COLORS["primary"]}; font-weight: 800;">CONALTURA</span>'
+    logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="height:50px;">' if logo_b64 else ''
     
     st.markdown(f"""
-    <div class="header-container">
-        <div class="header-left">
+    <div class="header-main">
+        <div class="header-brand">
             {logo_html}
             <div>
-                <h1 class="header-title">Dashboard Comercial</h1>
-                <p class="header-subtitle">Gerencia Comercial | Análisis de Ventas 2025</p>
+                <h1 class="header-title">con<span>altura</span></h1>
+                <p class="header-subtitle">Gran Convención de Ventas 2025 • Dashboard Ejecutivo</p>
             </div>
-        </div>
-        <div class="header-badge">
-            📊 Junta Internacional 2025
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-def render_kpi_card(icon, label, value, change_text="", change_type="positive", icon_color="orange"):
-    """Renderiza una tarjeta KPI estilizada"""
-    change_class = f"kpi-change-{change_type}"
-    icon_class = f"kpi-icon-{icon_color}"
-    
-    return f"""
-    <div class="kpi-card">
-        <div class="kpi-icon {icon_class}">{icon}</div>
-        <div class="kpi-label">{label}</div>
-        <div class="kpi-value">{value}</div>
-        <div class="kpi-change {change_class}">{change_text}</div>
-    </div>
-    """
-
-def render_welcome_screen():
-    """Pantalla de bienvenida cuando no hay datos"""
-    logo_b64 = get_logo_base64()
-    
-    if logo_b64:
-        logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="height: 60px; margin-bottom: 1rem;" alt="Conaltura">'
-    else:
-        logo_html = f'<div style="font-size: 2.5rem; color: {COLORS["primary"]}; font-weight: 800; margin-bottom: 1rem;">CONALTURA</div>'
+def render_kpis(df):
+    """KPIs principales"""
+    total_ventas = df['ValorNeto'].sum()
+    unidades = len(df)
+    ticket = total_ventas / unidades if unidades > 0 else 0
+    proyectos = df['MacroProyecto'].nunique() if 'MacroProyecto' in df.columns else 0
     
     st.markdown(f"""
-    <div class="welcome-container">
-        {logo_html}
-        <div class="welcome-icon">📊</div>
-        <h2 class="welcome-title">Bienvenido al Dashboard Comercial</h2>
-        <p class="welcome-text">
-            Visualiza el desempeño de ventas por ciudad, canal y proyecto.
-            Carga tu archivo de datos para comenzar el análisis.
-        </p>
-        <div class="welcome-steps">
-            <div class="welcome-step">
-                <span class="step-number">1</span>
-                <span>Abre el panel lateral izquierdo (☰)</span>
+    <div class="kpi-grid">
+        <div class="kpi-card lime">
+            <div class="kpi-header">
+                <div class="kpi-icon lime">💰</div>
+                <span class="kpi-label">Venta Total</span>
             </div>
-            <div class="welcome-step">
-                <span class="step-number">2</span>
-                <span>Carga tu archivo CSV o Excel</span>
+            <div class="kpi-value">{format_cop_short(total_ventas)}</div>
+            <div class="kpi-detail">{format_cop(total_ventas)}</div>
+        </div>
+        <div class="kpi-card lilac">
+            <div class="kpi-header">
+                <div class="kpi-icon lilac">🏠</div>
+                <span class="kpi-label">Unidades</span>
             </div>
-            <div class="welcome-step">
-                <span class="step-number">3</span>
-                <span>Explora los insights automáticamente</span>
+            <div class="kpi-value">{unidades:,}</div>
+            <div class="kpi-detail">Inmuebles vendidos</div>
+        </div>
+        <div class="kpi-card coral">
+            <div class="kpi-header">
+                <div class="kpi-icon coral">📈</div>
+                <span class="kpi-label">Ticket Promedio</span>
             </div>
+            <div class="kpi-value">{format_cop_short(ticket)}</div>
+            <div class="kpi-detail">{format_cop(ticket)}</div>
+        </div>
+        <div class="kpi-card teal">
+            <div class="kpi-header">
+                <div class="kpi-icon teal">🏗️</div>
+                <span class="kpi-label">Proyectos</span>
+            </div>
+            <div class="kpi-value">{proyectos}</div>
+            <div class="kpi-detail">Proyectos activos</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+def render_welcome():
+    """Pantalla bienvenida"""
+    st.markdown("""
+    <div class="welcome-box">
+        <div class="welcome-icon">📊</div>
+        <h2 class="welcome-title">Dashboard Ejecutivo</h2>
+        <p class="welcome-text">Carga tu archivo de datos para visualizar el análisis de ventas por canal, ciudad y proyecto.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Columnas requeridas
-    st.markdown("<br>", unsafe_allow_html=True)
-    with st.expander("📋 Estructura de datos requerida"):
+    with st.expander("📋 Estructura de datos"):
         st.markdown("""
-        | Columna | Descripción | Ejemplo |
-        |---------|-------------|---------|
-        | `MacroProyecto` | Nombre del proyecto | Amara, Bora |
-        | `Medio Publicitario` | Canal de venta | Instagram, Vallas |
-        | `Valor Neto` | Monto en COP | 450000000 |
-        | `Ciudad` | Ubicación | Medellín, Bogotá |
-        | `Fecha` | Fecha transacción | 2025-01-15 |
-        | `Agrupación` | Categoría canal | Ventas Digitales, Tradicional |
+        | Columna | Descripción |
+        |---------|-------------|
+        | MacroProyecto | Nombre del proyecto |
+        | MedioPublicitario | Canal específico |
+        | MacroCanal | Agrupación (DIGITAL, RELACIONAMIENTO, etc.) |
+        | ValorNeto | Monto en COP |
+        | Ciudad | Ubicación |
+        | Gama | Segmento (VIS/Acceso, Media, Alta, Premium) |
+        | Fecha | Fecha de la venta |
         """)
 
 # ══════════════════════════════════════════════════════════════════════════════════════
-# GRÁFICOS MINIMALISTAS
+# GRÁFICOS BI
 # ══════════════════════════════════════════════════════════════════════════════════════
 
-def create_horizontal_bar_chart(df, top_n=5):
-    """Top ciudades - Barras horizontales limpias"""
-    city_data = df.groupby('Ciudad')['Valor Neto'].sum().sort_values(ascending=True).tail(top_n)
+def chart_ranking_ciudades(df):
+    """Ranking de ciudades - barras horizontales"""
+    data = df.groupby('Ciudad')['ValorNeto'].sum().sort_values(ascending=True).tail(6)
     
-    fig = go.Figure()
+    colors = [CIUDAD_COLORS.get(c, COLORS['gray']) for c in data.index]
     
-    fig.add_trace(go.Bar(
-        y=city_data.index,
-        x=city_data.values,
+    fig = go.Figure(go.Bar(
+        y=data.index,
+        x=data.values,
         orientation='h',
-        marker=dict(
-            color=city_data.values,
-            colorscale=[[0, COLORS['primary']], [1, COLORS['accent']]],
-            cornerradius=6
-        ),
-        text=[format_cop_short(v) for v in city_data.values],
+        marker=dict(color=colors, cornerradius=6),
+        text=[format_cop_short(v) for v in data.values],
         textposition='outside',
-        textfont=dict(size=12, color=COLORS['text_dark'], family='Poppins'),
+        textfont=dict(size=11, color=COLORS['text'], family='Poppins'),
         hovertemplate='<b>%{y}</b><br>Ventas: %{text}<extra></extra>'
     ))
     
     fig.update_layout(
-        height=300,
-        margin=dict(l=0, r=80, t=10, b=10),
+        height=280,
+        margin=dict(l=0, r=60, t=10, b=10),
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(
-            showgrid=False,
-            showticklabels=False,
-            zeroline=False
-        ),
-        yaxis=dict(
-            showgrid=False,
-            tickfont=dict(size=12, color=COLORS['text_dark'], family='Poppins')
-        ),
+        xaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
+        yaxis=dict(showgrid=False, tickfont=dict(size=12, color=COLORS['text'], family='Poppins')),
         font=dict(family='Poppins')
     )
     
     return fig
 
-def create_donut_chart(df):
-    """Donut chart con % del mayor en el centro"""
-    agrup_data = df.groupby('Agrupación')['Valor Neto'].sum()
-    total = agrup_data.sum()
-    max_pct = (agrup_data.max() / total * 100) if total > 0 else 0
-    max_label = agrup_data.idxmax() if len(agrup_data) > 0 else ""
-    
-    # Mapear colores
-    colors_map = {
-        'Ventas Digitales': COLORS['accent'],
-        'Digital': COLORS['accent'],
-        'Tradicional': COLORS['primary'],
-        'Ventas Tradicionales': COLORS['primary'],
-        'Referidos': COLORS['lime'],
-    }
-    
-    colors = [colors_map.get(label, COLORS['neutral']) for label in agrup_data.index]
-    
-    fig = go.Figure(data=[go.Pie(
-        labels=agrup_data.index,
-        values=agrup_data.values,
-        hole=0.65,
-        marker=dict(colors=colors, line=dict(color='white', width=3)),
-        textinfo='percent',
-        textposition='outside',
-        textfont=dict(size=12, color=COLORS['text_dark'], family='Poppins'),
-        hovertemplate='<b>%{label}</b><br>%{value:,.0f} COP<br>%{percent}<extra></extra>'
-    )])
-    
-    fig.update_layout(
-        height=300,
-        margin=dict(l=20, r=20, t=20, b=20),
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.15,
-            xanchor="center",
-            x=0.5,
-            font=dict(size=11, family='Poppins')
-        ),
-        annotations=[
-            dict(
-                text=f'<b>{max_pct:.0f}%</b><br><span style="font-size:10px">{max_label[:12]}</span>',
-                x=0.5, y=0.5,
-                font=dict(size=24, color=COLORS['text_dark'], family='Poppins'),
-                showarrow=False
-            )
-        ],
-        font=dict(family='Poppins')
-    )
-    
-    return fig
-
-def create_heatmap(df):
-    """Heatmap de eficiencia: Ciudad vs Medio Publicitario"""
-    # Crear matriz
-    pivot = df.pivot_table(
-        index='Ciudad',
-        columns='Medio Publicitario',
-        values='Valor Neto',
-        aggfunc='sum',
-        fill_value=0
-    )
-    
-    # Limitar a top ciudades y medios
-    top_cities = df.groupby('Ciudad')['Valor Neto'].sum().nlargest(6).index
-    top_medios = df.groupby('Medio Publicitario')['Valor Neto'].sum().nlargest(8).index
-    
-    pivot = pivot.loc[pivot.index.isin(top_cities), pivot.columns.isin(top_medios)]
-    
-    if pivot.empty:
-        return None
-    
-    # Crear texto formateado
-    text_matrix = [[format_cop_short(val) for val in row] for row in pivot.values]
-    
-    fig = go.Figure(data=go.Heatmap(
-        z=pivot.values,
-        x=pivot.columns,
-        y=pivot.index,
-        text=text_matrix,
-        texttemplate="%{text}",
-        textfont=dict(size=10, color='white', family='Poppins'),
-        colorscale=[
-            [0, '#E5E7EB'],
-            [0.25, COLORS['primary']],
-            [0.5, '#1a7a8a'],
-            [0.75, COLORS['accent']],
-            [1, '#ff5030']
-        ],
-        showscale=False,
-        hovertemplate='<b>%{y}</b> × <b>%{x}</b><br>Ventas: %{text}<extra></extra>'
-    ))
-    
-    fig.update_layout(
-        height=350,
-        margin=dict(l=0, r=0, t=30, b=0),
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(
-            side='top',
-            tickfont=dict(size=10, color=COLORS['text_dark'], family='Poppins'),
-            tickangle=-45
-        ),
-        yaxis=dict(
-            tickfont=dict(size=11, color=COLORS['text_dark'], family='Poppins'),
-            autorange='reversed'
-        ),
-        font=dict(family='Poppins')
-    )
-    
-    return fig
-
-def create_trend_chart(df):
-    """Gráfico de tendencia mensual"""
+def chart_evolucion_mensual(df):
+    """Evolución mensual - área"""
     if 'Mes' not in df.columns:
         return None
     
-    trend = df.groupby(['Mes', 'Agrupación'])['Valor Neto'].sum().reset_index()
+    meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    monthly = df.groupby('Mes')['ValorNeto'].sum().reindex(range(1, 13), fill_value=0)
     
-    if trend.empty:
-        return None
+    fig = go.Figure()
     
-    color_map = {
-        'Ventas Digitales': COLORS['accent'],
-        'Digital': COLORS['accent'],
-        'Tradicional': COLORS['primary'],
-        'Ventas Tradicionales': COLORS['primary'],
-        'Referidos': COLORS['lime'],
-    }
-    
-    fig = px.area(
-        trend,
-        x='Mes',
-        y='Valor Neto',
-        color='Agrupación',
-        color_discrete_map=color_map
-    )
-    
-    fig.update_traces(
-        line=dict(width=2),
-        hovertemplate='<b>%{fullData.name}</b><br>%{x}<br>$%{y:,.0f}<extra></extra>'
-    )
+    fig.add_trace(go.Scatter(
+        x=meses,
+        y=monthly.values,
+        mode='lines',
+        fill='tozeroy',
+        line=dict(color=COLORS['lime'], width=3),
+        fillcolor='rgba(219, 255, 105, 0.3)',
+        hovertemplate='<b>%{x}</b><br>Ventas: %{customdata}<extra></extra>',
+        customdata=[format_cop_short(v) for v in monthly.values]
+    ))
     
     fig.update_layout(
         height=280,
-        margin=dict(l=0, r=0, t=10, b=0),
+        margin=dict(l=0, r=0, t=10, b=10),
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(
-            showgrid=False,
-            title='',
-            tickfont=dict(size=10, family='Poppins')
-        ),
-        yaxis=dict(
-            showgrid=True,
-            gridcolor='rgba(0,0,0,0.05)',
-            title='',
-            tickfont=dict(size=10, family='Poppins')
-        ),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="center",
-            x=0.5,
-            font=dict(size=10, family='Poppins')
-        ),
+        xaxis=dict(showgrid=False, tickfont=dict(size=10, color=COLORS['text_muted'], family='Poppins')),
+        yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickformat='$.2s', 
+                   tickfont=dict(size=10, color=COLORS['text_muted'], family='Poppins')),
         font=dict(family='Poppins')
     )
     
     return fig
+
+def chart_participacion_canal(df):
+    """Participación por canal - donut"""
+    if 'MacroCanal' not in df.columns:
+        return None, []
+    
+    data = df.groupby('MacroCanal')['ValorNeto'].sum().sort_values(ascending=False)
+    total = data.sum()
+    
+    colors = [CANAL_COLORS.get(c, COLORS['gray']) for c in data.index]
+    
+    fig = go.Figure(go.Pie(
+        labels=data.index,
+        values=data.values,
+        hole=0.6,
+        marker=dict(colors=colors, line=dict(color='white', width=2)),
+        textinfo='none',
+        hovertemplate='<b>%{label}</b><br>%{value:,.0f}<br>%{percent}<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        height=220,
+        margin=dict(l=10, r=10, t=10, b=10),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        showlegend=False,
+        font=dict(family='Poppins')
+    )
+    
+    # Datos para leyenda
+    legend_data = []
+    for canal, valor in data.items():
+        pct = (valor / total * 100) if total > 0 else 0
+        legend_data.append({
+            'canal': canal,
+            'valor': valor,
+            'pct': pct,
+            'color': CANAL_COLORS.get(canal, COLORS['gray'])
+        })
+    
+    return fig, legend_data
+
+def chart_ticket_por_canal(df):
+    """Ticket promedio por canal"""
+    if 'MacroCanal' not in df.columns:
+        return None
+    
+    data = df.groupby('MacroCanal').agg({'ValorNeto': ['sum', 'count']}).reset_index()
+    data.columns = ['MacroCanal', 'Total', 'Count']
+    data['Ticket'] = data['Total'] / data['Count']
+    data = data.sort_values('Ticket', ascending=False)
+    
+    colors = [CANAL_COLORS.get(c, COLORS['gray']) for c in data['MacroCanal']]
+    
+    fig = go.Figure(go.Bar(
+        x=data['MacroCanal'],
+        y=data['Ticket'],
+        marker=dict(color=colors, cornerradius=6),
+        text=[format_cop_short(v) for v in data['Ticket']],
+        textposition='outside',
+        textfont=dict(size=9, color=COLORS['text'], family='Poppins'),
+        hovertemplate='<b>%{x}</b><br>Ticket: %{text}<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        height=220,
+        margin=dict(l=0, r=0, t=20, b=40),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(showgrid=False, tickfont=dict(size=9, color=COLORS['text_muted'], family='Poppins'), tickangle=-20),
+        yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showticklabels=False),
+        font=dict(family='Poppins'),
+        bargap=0.3
+    )
+    
+    return fig
+
+def chart_distribucion_gama(df):
+    """Distribución por gama - donut"""
+    if 'Gama' not in df.columns:
+        return None, []
+    
+    data = df.groupby('Gama')['ValorNeto'].sum().sort_values(ascending=False)
+    total = data.sum()
+    
+    colors = [GAMA_COLORS.get(g, COLORS['gray']) for g in data.index]
+    
+    fig = go.Figure(go.Pie(
+        labels=data.index,
+        values=data.values,
+        hole=0.6,
+        marker=dict(colors=colors, line=dict(color='white', width=2)),
+        textinfo='none',
+        hovertemplate='<b>%{label}</b><br>%{value:,.0f}<br>%{percent}<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        height=220,
+        margin=dict(l=10, r=10, t=10, b=10),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        showlegend=False,
+        font=dict(family='Poppins')
+    )
+    
+    legend_data = []
+    for gama, valor in data.items():
+        pct = (valor / total * 100) if total > 0 else 0
+        legend_data.append({
+            'gama': gama,
+            'valor': valor,
+            'pct': pct,
+            'color': GAMA_COLORS.get(gama, COLORS['gray'])
+        })
+    
+    return fig, legend_data
+
+def chart_matriz_canal_gama(df):
+    """Matriz Canal × Gama - barras apiladas"""
+    if 'MacroCanal' not in df.columns or 'Gama' not in df.columns:
+        return None
+    
+    pivot = df.pivot_table(index='MacroCanal', columns='Gama', values='ValorNeto', aggfunc='sum', fill_value=0)
+    
+    # Ordenar canales por total
+    totals = pivot.sum(axis=1).sort_values(ascending=False)
+    pivot = pivot.loc[totals.index]
+    
+    gama_order = ['VIS/Acceso', 'Media', 'Alta', 'Premium']
+    gamas_present = [g for g in gama_order if g in pivot.columns]
+    
+    fig = go.Figure()
+    
+    for gama in gamas_present:
+        if gama in pivot.columns:
+            fig.add_trace(go.Bar(
+                name=gama,
+                x=pivot.index,
+                y=pivot[gama],
+                marker_color=GAMA_COLORS.get(gama, COLORS['gray']),
+                hovertemplate=f'<b>%{{x}}</b><br>{gama}: %{{y:,.0f}}<extra></extra>'
+            ))
+    
+    fig.update_layout(
+        barmode='stack',
+        height=300,
+        margin=dict(l=0, r=0, t=10, b=50),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(showgrid=False, tickfont=dict(size=10, color=COLORS['text_muted'], family='Poppins'), tickangle=-20),
+        yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickformat='$.2s',
+                   tickfont=dict(size=10, color=COLORS['text_muted'], family='Poppins')),
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='center',
+            x=0.5,
+            font=dict(size=10, family='Poppins')
+        ),
+        font=dict(family='Poppins'),
+        bargap=0.2
+    )
+    
+    return fig
+
+def render_legend(data, key_field, show_value=True):
+    """Renderiza leyenda al lado del gráfico"""
+    html = '<div class="legend-inline">'
+    for item in data[:6]:
+        label = item.get(key_field, '')
+        pct = item.get('pct', 0)
+        color = item.get('color', COLORS['gray'])
+        html += f'''
+        <div class="legend-item">
+            <div class="legend-dot" style="background:{color}"></div>
+            <span class="legend-label">{label}</span>
+            <span class="legend-value">{pct:.1f}%</span>
+        </div>
+        '''
+    html += '</div>'
+    return html
+
+def render_top_proyectos(df, n=10):
+    """Top proyectos con ranking"""
+    if 'MacroProyecto' not in df.columns:
+        return ""
+    
+    data = df.groupby('MacroProyecto').agg({
+        'ValorNeto': 'sum',
+        'Ciudad': 'first'
+    }).reset_index()
+    data['Count'] = df.groupby('MacroProyecto').size().values
+    data['Ticket'] = data['ValorNeto'] / data['Count']
+    data = data.sort_values('ValorNeto', ascending=False).head(n)
+    
+    html = ''
+    for i, row in data.iterrows():
+        rank = data.index.get_loc(i) + 1
+        nombre = row['MacroProyecto'].replace('VENTAS ', '').strip()
+        ciudad = row['Ciudad']
+        unidades = row['Count']
+        ventas = format_cop_short(row['ValorNeto'])
+        ticket = format_cop_short(row['Ticket'])
+        rank_class = 'top' if rank <= 3 else 'normal'
+        
+        html += f'''
+        <div class="proyecto-item">
+            <div class="proyecto-rank {rank_class}">{rank}</div>
+            <div class="proyecto-info">
+                <div class="proyecto-name">{nombre}</div>
+                <div class="proyecto-meta">{ciudad} • {unidades} uds</div>
+            </div>
+            <div class="proyecto-values">
+                <div class="proyecto-ventas">{ventas}</div>
+                <div class="proyecto-ticket">Ticket: {ticket}</div>
+            </div>
+        </div>
+        '''
+    
+    return html
+
+def render_insights(df):
+    """Insights automáticos"""
+    insights = []
+    
+    # Canal estrella (mayor ticket)
+    if 'MacroCanal' in df.columns:
+        canal_data = df.groupby('MacroCanal').agg({'ValorNeto': ['sum', 'count']})
+        canal_data.columns = ['Total', 'Count']
+        canal_data['Ticket'] = canal_data['Total'] / canal_data['Count']
+        top_canal = canal_data['Ticket'].idxmax()
+        top_ticket = canal_data.loc[top_canal, 'Ticket']
+        
+        insights.append({
+            'badge': 'Canal Estrella',
+            'color': COLORS['lime'],
+            'text': f'<strong>{top_canal}</strong> genera el ticket promedio más alto con <strong>{format_cop_short(top_ticket)}</strong>'
+        })
+        
+        # Canal oportunidad (menor ticket)
+        low_canal = canal_data['Ticket'].idxmin()
+        insights.append({
+            'badge': 'Oportunidad',
+            'color': COLORS['coral'],
+            'text': f'<strong>{low_canal}</strong> tiene el ticket más bajo. Oportunidad de mejorar conversión.'
+        })
+    
+    # Ciudad líder
+    if 'Ciudad' in df.columns:
+        ciudad_data = df.groupby('Ciudad')['ValorNeto'].sum()
+        top_ciudad = ciudad_data.idxmax()
+        n_proy = df[df['Ciudad'] == top_ciudad]['MacroProyecto'].nunique()
+        
+        insights.append({
+            'badge': 'Mercado Líder',
+            'color': COLORS['lilac'],
+            'text': f'<strong>{top_ciudad}</strong> concentra el mayor volumen con <strong>{n_proy}</strong> proyectos activos.'
+        })
+    
+    return insights
 
 # ══════════════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════════════
 
 with st.sidebar:
-    # Logo en sidebar
-    logo_b64 = get_logo_base64()
-    if logo_b64:
-        st.markdown(f"""
-        <div style="text-align: center; padding: 1.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 1.5rem;">
-            <img src="data:image/png;base64,{logo_b64}" style="height: 45px;" alt="Conaltura">
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div style="text-align: center; padding: 1.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 1.5rem;">
-            <span style="color: white; font-size: 1.5rem; font-weight: 700;">CONALTURA</span>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # File uploader
-    st.markdown('<p style="color: #DBFF69; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.5rem;">📁 CARGAR DATOS</p>', unsafe_allow_html=True)
-    uploaded_file = st.file_uploader(
-        "",
-        type=['csv', 'xlsx', 'xls'],
-        help="Archivo CSV o Excel con datos de ventas"
-    )
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Filtros
-    filter_ciudad = None
-    filter_agrupacion = None
-    
-    if uploaded_file:
-        df = load_data(uploaded_file)
-        if df is not None and not df.empty:
-            st.markdown('<p style="color: #DBFF69; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.5rem;">🎯 FILTROS</p>', unsafe_allow_html=True)
-            
-            if 'Ciudad' in df.columns:
-                ciudades = ['Todas'] + sorted(df['Ciudad'].unique().tolist())
-                filter_ciudad = st.selectbox("Ciudad", ciudades)
-            
-            if 'Agrupación' in df.columns:
-                agrupaciones = ['Todas'] + sorted(df['Agrupación'].unique().tolist())
-                filter_agrupacion = st.selectbox("Canal", agrupaciones)
-    
-    # Footer sidebar
-    st.markdown("""
-    <div style="position: absolute; bottom: 20px; left: 20px; right: 20px; text-align: center;">
-        <p style="color: rgba(255,255,255,0.5); font-size: 0.7rem; margin: 0;">
-            Dashboard Gerencia Comercial<br>
-            © Conaltura 2025
-        </p>
+    st.markdown(f"""
+    <div style="text-align:center; padding:1rem 0; border-bottom:1px solid {COLORS['border']}; margin-bottom:1rem;">
+        <span style="font-size:1.2rem; font-weight:700; color:{COLORS['text']};">⚙️ Filtros</span>
     </div>
     """, unsafe_allow_html=True)
+    
+    uploaded_file = st.file_uploader("📁 Cargar datos", type=['csv', 'xlsx', 'xls'])
+    
+    filter_ciudad = None
+    filter_canal = None
+    filter_gama = None
+    filter_mes = None
+    
+    if uploaded_file:
+        df_temp = load_data(uploaded_file)
+        if df_temp is not None:
+            st.markdown("---")
+            
+            if 'Ciudad' in df_temp.columns:
+                ciudades = ['Todas'] + sorted(df_temp['Ciudad'].unique().tolist())
+                filter_ciudad = st.selectbox("🏙️ Ciudad", ciudades)
+            
+            if 'MacroCanal' in df_temp.columns:
+                canales = ['Todos'] + sorted(df_temp['MacroCanal'].unique().tolist())
+                filter_canal = st.selectbox("📢 Canal", canales)
+            
+            if 'Gama' in df_temp.columns:
+                gamas = ['Todas'] + sorted(df_temp['Gama'].unique().tolist())
+                filter_gama = st.selectbox("🎯 Gama", gamas)
+            
+            meses_opt = ['Todos', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+            filter_mes = st.selectbox("📅 Mes", meses_opt)
 
 # ══════════════════════════════════════════════════════════════════════════════════════
-# CONTENIDO PRINCIPAL
+# MAIN
 # ══════════════════════════════════════════════════════════════════════════════════════
 
-# Header
 render_header()
 
-# Verificar datos
 if uploaded_file is None:
-    render_welcome_screen()
+    render_welcome()
     st.stop()
 
 df = load_data(uploaded_file)
 
 if df is None or df.empty:
-    st.error("❌ No se pudieron cargar los datos. Verifica el formato del archivo.")
+    st.error("❌ No se pudieron cargar los datos")
     st.stop()
 
 # Aplicar filtros
@@ -837,171 +1013,195 @@ df_filtered = df.copy()
 if filter_ciudad and filter_ciudad != 'Todas':
     df_filtered = df_filtered[df_filtered['Ciudad'] == filter_ciudad]
 
-if filter_agrupacion and filter_agrupacion != 'Todas':
-    df_filtered = df_filtered[df_filtered['Agrupación'] == filter_agrupacion]
+if filter_canal and filter_canal != 'Todos':
+    df_filtered = df_filtered[df_filtered['MacroCanal'] == filter_canal]
+
+if filter_gama and filter_gama != 'Todas':
+    df_filtered = df_filtered[df_filtered['Gama'] == filter_gama]
+
+if filter_mes and filter_mes != 'Todos':
+    meses_map = {'Ene':1,'Feb':2,'Mar':3,'Abr':4,'May':5,'Jun':6,'Jul':7,'Ago':8,'Sep':9,'Oct':10,'Nov':11,'Dic':12}
+    if 'Mes' in df_filtered.columns:
+        df_filtered = df_filtered[df_filtered['Mes'] == meses_map.get(filter_mes)]
 
 if df_filtered.empty:
-    st.warning("⚠️ No hay datos para los filtros seleccionados.")
+    st.warning("⚠️ No hay datos para los filtros seleccionados")
     st.stop()
 
-# ══════════════════════════════════════════════════════════════════════════════════════
-# KPIs ROW
-# ══════════════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
+# KPIs
+# ═══════════════════════════════════════════════════════════════════════════════
 
-total_ventas = df_filtered['Valor Neto'].sum()
-meta_ficticia = total_ventas * 1.1  # Meta 10% arriba para simular
-cumplimiento = (total_ventas / meta_ficticia * 100) if meta_ficticia > 0 else 0
-ticket_promedio = total_ventas / len(df_filtered) if len(df_filtered) > 0 else 0
-n_operaciones = len(df_filtered)
+render_kpis(df_filtered)
 
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.markdown(render_kpi_card(
-        "💰", "Ventas Totales",
-        format_cop_short(total_ventas),
-        f"📈 {n_operaciones} operaciones",
-        "positive", "orange"
-    ), unsafe_allow_html=True)
-
-with col2:
-    st.markdown(render_kpi_card(
-        "🎯", "Cumplimiento Meta",
-        f"{cumplimiento:.1f}%",
-        "vs meta proyectada",
-        "accent", "green"
-    ), unsafe_allow_html=True)
-
-with col3:
-    st.markdown(render_kpi_card(
-        "🎫", "Ticket Promedio",
-        format_cop_short(ticket_promedio),
-        "por operación",
-        "positive", "lime"
-    ), unsafe_allow_html=True)
-
-with col4:
-    top_city = df_filtered.groupby('Ciudad')['Valor Neto'].sum().idxmax() if 'Ciudad' in df_filtered.columns else "N/A"
-    st.markdown(render_kpi_card(
-        "🏆", "Ciudad Líder",
-        top_city,
-        "mayor volumen",
-        "accent", "orange"
-    ), unsafe_allow_html=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# ══════════════════════════════════════════════════════════════════════════════════════
-# NIVEL 1: VISIÓN MACRO
-# ══════════════════════════════════════════════════════════════════════════════════════
-
-col_left, col_right = st.columns([1.2, 1])
-
-with col_left:
-    st.markdown("""
-    <div class="section-container">
-        <div class="section-title">
-            <span class="section-title-icon">🏙️</span>
-            Top 5 Ciudades por Ventas
-        </div>
-    """, unsafe_allow_html=True)
-    
-    fig_bars = create_horizontal_bar_chart(df_filtered)
-    st.plotly_chart(fig_bars, use_container_width=True, config={'displayModeBar': False})
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-
-with col_right:
-    st.markdown("""
-    <div class="section-container">
-        <div class="section-title">
-            <span class="section-title-icon">📊</span>
-            Share por Tipo de Canal
-        </div>
-    """, unsafe_allow_html=True)
-    
-    fig_donut = create_donut_chart(df_filtered)
-    st.plotly_chart(fig_donut, use_container_width=True, config={'displayModeBar': False})
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ══════════════════════════════════════════════════════════════════════════════════════
-# NIVEL 2: DETALLE TÁCTICO
-# ══════════════════════════════════════════════════════════════════════════════════════
-
-col_heat, col_trend = st.columns([1.3, 1])
-
-with col_heat:
-    st.markdown("""
-    <div class="section-container">
-        <div class="section-title">
-            <span class="section-title-icon">🔥</span>
-            Mapa de Eficiencia: Ciudad × Canal
-        </div>
-        <p style="color: #6B7280; font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 1rem;">
-            ¿Qué funciona en cada ciudad? Intensidad = volumen de ventas
-        </p>
-    """, unsafe_allow_html=True)
-    
-    fig_heat = create_heatmap(df_filtered)
-    if fig_heat:
-        st.plotly_chart(fig_heat, use_container_width=True, config={'displayModeBar': False})
-    else:
-        st.info("Datos insuficientes para el heatmap")
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-
-with col_trend:
-    st.markdown("""
-    <div class="section-container">
-        <div class="section-title">
-            <span class="section-title-icon">📈</span>
-            Tendencia Mensual
-        </div>
-    """, unsafe_allow_html=True)
-    
-    fig_trend = create_trend_chart(df_filtered)
-    if fig_trend:
-        st.plotly_chart(fig_trend, use_container_width=True, config={'displayModeBar': False})
-    else:
-        st.info("Se requiere columna 'Fecha' para tendencias")
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ══════════════════════════════════════════════════════════════════════════════════════
-# TABLA DE DETALLE
-# ══════════════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
+# PANORAMA GENERAL
+# ═══════════════════════════════════════════════════════════════════════════════
 
 st.markdown("""
-<div class="section-container">
-    <div class="section-title">
-        <span class="section-title-icon">📋</span>
-        Detalle de Operaciones | Top 15 por Valor
+<div class="section-header">
+    <span class="section-icon">🎯</span>
+    <h2 class="section-title">Panorama General</h2>
+</div>
+""", unsafe_allow_html=True)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("""
+    <div class="chart-card">
+        <div class="chart-title">🏆 Ranking de Ciudades</div>
+        <div class="chart-subtitle">Ventas totales por ubicación</div>
+    """, unsafe_allow_html=True)
+    
+    fig = chart_ranking_ciudades(df_filtered)
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col2:
+    st.markdown("""
+    <div class="chart-card">
+        <div class="chart-title">📈 Evolución Mensual</div>
+        <div class="chart-subtitle">Comportamiento de ventas en el año</div>
+    """, unsafe_allow_html=True)
+    
+    fig = chart_evolucion_mensual(df_filtered)
+    if fig:
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    else:
+        st.info("Se requiere columna 'Fecha'")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INTELIGENCIA DE CANALES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("""
+<div class="section-header" style="margin-top: 1.5rem;">
+    <span class="section-icon">📢</span>
+    <h2 class="section-title">Inteligencia de Canales</h2>
+</div>
+""", unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("""
+    <div class="chart-card">
+        <div class="chart-title">Participación por Canal</div>
+        <div class="chart-subtitle">% sobre venta total</div>
+    """, unsafe_allow_html=True)
+    
+    fig_canal, legend_canal = chart_participacion_canal(df_filtered)
+    if fig_canal:
+        subcol1, subcol2 = st.columns([1.2, 1])
+        with subcol1:
+            st.plotly_chart(fig_canal, use_container_width=True, config={'displayModeBar': False})
+        with subcol2:
+            st.markdown(render_legend(legend_canal, 'canal'), unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col2:
+    st.markdown("""
+    <div class="chart-card">
+        <div class="chart-title">Ticket Promedio por Canal</div>
+        <div class="chart-subtitle">¿Cuál canal trae clientes de mayor valor?</div>
+    """, unsafe_allow_html=True)
+    
+    fig = chart_ticket_por_canal(df_filtered)
+    if fig:
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col3:
+    st.markdown("""
+    <div class="chart-card">
+        <div class="chart-title">Distribución por Gama</div>
+        <div class="chart-subtitle">Segmentación del mercado</div>
+    """, unsafe_allow_html=True)
+    
+    fig_gama, legend_gama = chart_distribucion_gama(df_filtered)
+    if fig_gama:
+        subcol1, subcol2 = st.columns([1.2, 1])
+        with subcol1:
+            st.plotly_chart(fig_gama, use_container_width=True, config={'displayModeBar': False})
+        with subcol2:
+            st.markdown(render_legend(legend_gama, 'gama'), unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MATRIZ Y TOP PROYECTOS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("""
+    <div class="chart-card" style="margin-top: 1rem;">
+        <div class="chart-title">📊 Matriz Canal × Gama</div>
+        <div class="chart-subtitle">Cruce estratégico de canales y segmentos</div>
+    """, unsafe_allow_html=True)
+    
+    fig = chart_matriz_canal_gama(df_filtered)
+    if fig:
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col2:
+    st.markdown("""
+    <div class="chart-card" style="margin-top: 1rem;">
+        <div class="chart-title">🏗️ Top 10 Proyectos</div>
+        <div class="chart-subtitle">Ranking por volumen de ventas</div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f'<div style="max-height:320px; overflow-y:auto;">{render_top_proyectos(df_filtered)}</div>', unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INSIGHTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("""
+<div class="insights-container" style="margin-top: 1.5rem;">
+    <div class="section-header">
+        <span class="section-icon">✨</span>
+        <h2 class="section-title">Insights Clave</h2>
     </div>
 """, unsafe_allow_html=True)
 
-# Preparar tabla
-table_df = df_filtered.nlargest(15, 'Valor Neto')[['MacroProyecto', 'Ciudad', 'Medio Publicitario', 'Agrupación', 'Valor Neto']].copy()
-table_df['Valor Neto'] = table_df['Valor Neto'].apply(format_cop)
-table_df.columns = ['Proyecto', 'Ciudad', 'Canal', 'Tipo', 'Valor Venta']
+insights = render_insights(df_filtered)
+cols = st.columns(len(insights))
 
-st.dataframe(
-    table_df,
-    use_container_width=True,
-    hide_index=True,
-    height=400
-)
+for i, insight in enumerate(insights):
+    with cols[i]:
+        st.markdown(f"""
+        <div class="insight-card">
+            <div class="insight-badge">
+                <div class="insight-badge-dot" style="background:{insight['color']}"></div>
+                <span style="color:{insight['color']}">{insight['badge']}</span>
+            </div>
+            <p class="insight-text">{insight['text']}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ══════════════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # FOOTER
-# ══════════════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 
 st.markdown(f"""
-<div style="text-align: center; padding: 2rem 0; margin-top: 2rem; border-top: 1px solid {COLORS['border']};">
-    <p style="color: {COLORS['text_muted']}; font-size: 0.85rem; margin: 0;">
-        Dashboard Gerencia Comercial | Conaltura © 2025 | Junta Internacional
+<div class="footer">
+    <p class="footer-text">
+        Dashboard Ejecutivo • Gran Convención de Ventas CONALTURA 2025<br>
+        <span style="opacity:0.7">Total registros: {len(df_filtered):,} de {len(df):,} | Filtros activos: {sum([1 for f in [filter_ciudad, filter_canal, filter_gama, filter_mes] if f and f not in ['Todas', 'Todos']])}</span>
     </p>
 </div>
 """, unsafe_allow_html=True)
